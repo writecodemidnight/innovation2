@@ -1,0 +1,27 @@
+{
+  "name": "campus-club-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "基于大数据分析的校园社团活动效果评估与资源优化配置系统 - 前端项目",
+  "scripts": {
+    "dev:student": "pnpm --filter @campus/student dev",
+    "dev:club": "pnpm --filter @campus/club dev",
+    "dev:admin": "pnpm --filter @campus/admin dev",
+    "build": "pnpm -r build",
+    "build:student": "pnpm --filter @campus/student build",
+    "build:club": "pnpm --filter @campus/club build",
+    "build:admin": "pnpm --filter @campus/admin build",
+    "clean": "pnpm -r exec rm -rf dist node_modules .turbo",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "devDependencies": {
+    "typescript": "~5.3.0",
+    "@types/node": "^20.10.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "packageManager": "pnpm@8.15.0"
+}

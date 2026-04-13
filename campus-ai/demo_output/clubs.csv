@@ -1,0 +1,6 @@
+﻿club_id,club_name,club_type,club_type_name,description,founding_year,member_count,rating,advisor_name,contact_email,status
+CLUB1000,舞蹈社,arts,文艺类,这是一个文艺类社团，致力于舞蹈相关的活动。,2021,75,4,指导教师-0,club1000@campus.edu.cn,active
+CLUB1001,篮球社,sports,体育类,这是一个体育类社团，致力于篮球相关的活动。,2021,96,3,指导教师-1,club1001@campus.edu.cn,active
+CLUB1002,创客社,tech,科技类,这是一个科技类社团，致力于创客相关的活动。,2021,71,5,指导教师-2,club1002@campus.edu.cn,active
+CLUB1003,AI社,tech,科技类,这是一个科技类社团，致力于AI相关的活动。,2015,67,5,指导教师-3,club1003@campus.edu.cn,active
+CLUB1004,篮球社,sports,体育类,这是一个体育类社团，致力于篮球相关的活动。,2021,80,4,指导教师-4,club1004@campus.edu.cn,active

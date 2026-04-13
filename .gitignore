@@ -1,0 +1,364 @@
+# .gitignore
+# ============================================
+# Java/Maven 相关
+# ============================================
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# 日志文件
+*.log
+logs/
+log/
+*.log.*
+
+# 临时文件
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+~*
+
+# 打包文件
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# 虚拟机和容器文件
+.vscode/
+.idea/
+*.iml
+*.ipr
+*.iws
+.classpath
+.project
+.settings/
+bin/
+build/
+out/
+dist/
+
+# 操作系统文件
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# 环境变量文件
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# 数据库文件
+*.db
+*.sqlite
+*.sqlite3
+
+# 测试覆盖率报告
+coverage/
+*.lcov
+
+# 依赖目录
+node_modules/
+jspm_packages/
+
+# 缓存目录
+.cache/
+.parcel-cache/
+
+# 运行时数据
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# 配置文件
+*.properties
+!src/main/resources/*.properties
+!src/test/resources/*.properties
+
+# 单元测试报告
+test-output/
+reports/
+*.report
+
+# 系统特定文件
+.dockerignore
+.docker/
+.dockerenv
+
+# Python 相关
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# 文档文件
+*.pdf
+*.doc
+*.docx
+*.xls
+*.xlsx
+*.ppt
+*.pptx
+
+# 媒体文件
+*.mp4
+*.mp3
+*.avi
+*.mov
+*.wav
+
+# 压缩文件
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+
+# 开发工具
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# 本地历史
+.history/
+
+# 大型文件
+*.large
+
+# 备份文件
+*.bak
+*.backup
+*.old
+
+# 临时构建文件
+*.class
+*.dex
+
+# 忽略Docker相关（但保留Dockerfile和docker-compose.yml）
+!Dockerfile
+!docker-compose.yml
+
+# 忽略Maven包装器
+!.mvn/wrapper/maven-wrapper.properties
+
+# 忽略Spring Boot特定文件
+spring-boot-devtools.properties
+
+# 忽略特定IDE文件
+.idea/
+*.iws
+out/
+
+# 忽略特定编辑器文件
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# 忽略特定操作系统文件
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# 忽略特定测试文件
+*.orig
+*.rej
+
+# 忽略特定日志文件
+*.log
+logs/
+log/
+
+# 忽略特定临时文件
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+~*
+
+# 忽略特定打包文件
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# 忽略特定虚拟机和容器文件
+.vscode/
+.idea/
+*.iml
+*.ipr
+*.iws
+.classpath
+.project
+.settings/
+bin/
+build/
+out/
+dist/
+
+# 忽略特定环境变量文件
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# 忽略特定数据库文件
+*.db
+*.sqlite
+*.sqlite3
+
+# 忽略特定测试覆盖率报告
+coverage/
+*.lcov
+
+# 忽略特定依赖目录
+node_modules/
+jspm_packages/
+
+# 忽略特定缓存目录
+.cache/
+.parcel-cache/
+
+# 忽略特定运行时数据
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# 忽略特定配置文件
+*.properties
+!src/main/resources/*.properties
+!src/test/resources/*.properties
+
+# 忽略特定单元测试报告
+test-output/
+reports/
+*.report
+
+# 忽略特定系统特定文件
+.dockerignore
+.docker/
+.dockerenv
+
+# 忽略特定Python相关
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# 忽略特定文档文件
+*.pdf
+*.doc
+*.docx
+*.xls
+*.xlsx
+*.ppt
+*.pptx
+
+# 忽略特定媒体文件
+*.mp4
+*.mp3
+*.avi
+*.mov
+*.wav
+
+# 忽略特定压缩文件
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+
+# 忽略特定开发工具
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# 忽略特定本地历史
+.history/
+
+# 忽略特定大型文件
+*.large
+
+# 忽略特定备份文件
+*.bak
+*.backup
+*.old
+
+# 忽略特定临时构建文件
+*.class
+*.dex
+
+# 忽略git worktrees目录
+.worktrees/
