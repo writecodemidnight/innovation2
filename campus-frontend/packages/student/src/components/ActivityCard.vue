@@ -1,20 +1,20 @@
 <template>
   <view class="activity-card" @click="$emit('click')">
-    <image class="card-cover" :src="activity.coverImageUrl" mode="aspectFill" />
+    <image class="card-cover" :src="activity.coverImageUrl || 'https://picsum.photos/400/200'" mode="aspectFill" />
     <view class="card-content">
       <view class="card-header">
-        <van-tag :type="statusType" size="small">{{ statusLabel }}</van-tag>
+        <text class="status-tag" :class="statusClass">{{ statusLabel }}</text>
         <text class="type-tag">{{ typeLabel }}</text>
       </view>
       <text class="card-title">{{ activity.title }}</text>
       <text class="card-desc ellipsis-2">{{ activity.description }}</text>
       <view class="card-info">
         <view class="info-item">
-          <van-icon name="location-o" size="24rpx" color="#999" />
+          <uni-icons type="location" size="14" color="#999" />
           <text class="info-text">{{ activity.location }}</text>
         </view>
         <view class="info-item">
-          <van-icon name="clock-o" size="24rpx" color="#999" />
+          <uni-icons type="calendar" size="14" color="#999" />
           <text class="info-text">{{ formatTime(activity.startTime) }}</text>
         </view>
       </view>
@@ -48,8 +48,8 @@ defineEmits<{
   click: [];
 }>();
 
-// 状态标签
-const statusType = computed(() => {
+// 状态标签样式
+const statusClass = computed(() => {
   const map: Record<string, string> = {
     'REGISTERING': 'success',
     'ONGOING': 'primary',
@@ -110,12 +110,43 @@ function formatTime(time: string) {
   display: flex;
   align-items: center;
   margin-bottom: 12rpx;
+  gap: 12rpx;
+}
+
+.status-tag {
+  font-size: 22rpx;
+  padding: 4rpx 12rpx;
+  border-radius: 8rpx;
+
+  &.success {
+    color: #07c160;
+    background: #e6f7ed;
+  }
+
+  &.primary {
+    color: #1989fa;
+    background: #e6f2ff;
+  }
+
+  &.danger {
+    color: #ff4d4f;
+    background: #fff1f0;
+  }
+
+  &.warning {
+    color: #ff9800;
+    background: #fff5e6;
+  }
+
+  &.default {
+    color: #999;
+    background: #f5f5f5;
+  }
 }
 
 .type-tag {
   font-size: 22rpx;
   color: #666;
-  margin-left: 12rpx;
   background: #f5f5f5;
   padding: 4rpx 12rpx;
   border-radius: 8rpx;
@@ -144,12 +175,12 @@ function formatTime(time: string) {
   display: flex;
   align-items: center;
   margin-bottom: 8rpx;
+  gap: 8rpx;
 }
 
 .info-text {
   font-size: 24rpx;
   color: #999;
-  margin-left: 8rpx;
 }
 
 .card-footer {

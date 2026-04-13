@@ -59,28 +59,19 @@
     "list": [
       {
         "pagePath": "pages/index/index",
-        "text": "推荐",
-        "iconPath": "static/tabbar/home.png",
-        "selectedIconPath": "static/tabbar/home-active.png"
+        "text": "推荐"
       },
       {
         "pagePath": "pages/participate/history",
-        "text": "记录",
-        "iconPath": "static/tabbar/history.png",
-        "selectedIconPath": "static/tabbar/history-active.png"
+        "text": "记录"
       },
       {
         "pagePath": "pages/profile/index",
-        "text": "我的",
-        "iconPath": "static/tabbar/user.png",
-        "selectedIconPath": "static/tabbar/user-active.png"
+        "text": "我的"
       }
     ]
   },
   "easycom": {
-    "autoscan": true,
-    "custom": {
-      "^van-(.*)": "vant/lib/$1/index.vue"
-    }
+    "autoscan": true
   }
 }

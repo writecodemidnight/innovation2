@@ -5,7 +5,7 @@
       <view class="nav-content">
         <text class="nav-title">校园社团活动</text>
         <view class="nav-search" @click="goToSearch">
-          <van-icon name="search" size="32rpx" color="#999" />
+          <uni-icons type="search" size="16" color="#999" />
           <text class="search-placeholder">搜索活动</text>
         </view>
       </view>
@@ -13,16 +13,11 @@
 
     <!-- 轮播图 -->
     <view class="banner-section">
-      <van-swipe :autoplay="3000" indicator-color="white">
-        <van-swipe-item v-for="(item, index) in banners" :key="index">
-          <image
-            class="banner-image"
-            :src="item.image"
-            mode="aspectFill"
-            @click="onBannerClick(item)"
-          />
-        </van-swipe-item>
-      </van-swipe>
+      <swiper class="swiper" :indicator-dots="true" :autoplay="true" :interval="3000" indicator-color="rgba(255,255,255,0.5)" indicator-active-color="#fff">
+        <swiper-item v-for="(item, index) in banners" :key="index" @click="onBannerClick(item)">
+          <image class="banner-image" :src="item.image" mode="aspectFill" />
+        </swiper-item>
+      </swiper>
     </view>
 
     <!-- 活动分类 -->
@@ -45,32 +40,29 @@
         <text class="section-more" @click="goToMore">查看更多</text>
       </view>
 
-      <van-pull-refresh v-model="refreshing" @refresh="onRefresh">
-        <van-list
-          v-model:loading="loading"
-          :finished="finished"
-          finished-text="没有更多了"
-          @load="onLoad"
-        >
-          <ActivityCard
-            v-for="activity in activities"
-            :key="activity.id"
-            :activity="activity"
-            @click="goToDetail(activity.id)"
-          />
-        </van-list>
-      </van-pull-refresh>
+      <scroll-view scroll-y class="activity-list" @scrolltolower="onLoadMore">
+        <ActivityCard
+          v-for="activity in activities"
+          :key="activity.id"
+          :activity="activity"
+          @click="goToDetail(activity.id)"
+        />
+        <uni-load-more :status="loadMoreStatus" />
+      </scroll-view>
     </view>
 
     <!-- 空状态 -->
-    <van-empty v-if="!loading && activities.length === 0" description="暂无推荐活动" />
+    <view v-if="!loading && activities.length === 0" class="empty-state">
+      <uni-icons type="info" size="48" color="#999" />
+      <text class="empty-text">暂无推荐活动</text>
+    </view>
   </view>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { ActivityType, ActivityTypeIcon, ActivityTypeMap } from '@campus/shared';
-import type { Activity, ActivityRecommendation } from '@campus/shared';
+import type { Activity } from '@campus/shared';
 import ActivityCard from '@/components/ActivityCard.vue';
 
 // 状态栏高度
@@ -94,9 +86,10 @@ const categories = Object.values(ActivityType).map(type => ({
 const activities = ref<Activity[]>([]);
 const loading = ref(false);
 const finished = ref(false);
-const refreshing = ref(false);
 const page = ref(1);
 const pageSize = 10;
+
+const loadMoreStatus = ref<'more' | 'loading' | 'noMore'>('more');
 
 // 获取状态栏高度
 onMounted(() => {
@@ -107,11 +100,16 @@ onMounted(() => {
 
 // 加载推荐活动
 async function loadRecommendations() {
+  if (loading.value || finished.value) return;
+
+  loading.value = true;
+  loadMoreStatus.value = 'loading';
+
   // TODO: 调用API获取推荐活动
   // 模拟数据
   const mockData: Activity[] = Array.from({ length: 5 }, (_, i) => ({
-    id: i + 1,
-    title: `精彩活动 ${i + 1}`,
+    id: i + 1 + (page.value - 1) * pageSize,
+    title: `精彩活动 ${i + 1 + (page.value - 1) * pageSize}`,
     description: '这是一个精彩的社团活动，欢迎大家踊跃参加！',
     clubId: 1,
     clubName: '科技创新社',
@@ -123,33 +121,24 @@ async function loadRecommendations() {
     maxParticipants: 50,
     currentParticipants: 20 + i * 5,
     status: 'REGISTERING' as any,
-    coverImageUrl: `https://picsum.photos/400/200?random=${i}`,
+    coverImageUrl: `https://picsum.photos/400/200?random=${i + page.value * 10}`,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   }));
 
-  if (refreshing.value) {
-    activities.value = mockData;
-    refreshing.value = false;
-  } else {
-    activities.value.push(...mockData);
-  }
-
+  activities.value.push(...mockData);
   loading.value = false;
+  loadMoreStatus.value = 'more';
+
   if (page.value >= 3) {
     finished.value = true;
+    loadMoreStatus.value = 'noMore';
   }
-}
-
-// 下拉刷新
-function onRefresh() {
-  page.value = 1;
-  finished.value = false;
-  loadRecommendations();
 }
 
 // 加载更多
-function onLoad() {
+function onLoadMore() {
+  if (finished.value || loading.value) return;
   page.value++;
   loadRecommendations();
 }
@@ -232,6 +221,10 @@ function onBannerClick(banner: any) {
   overflow: hidden;
 }
 
+.swiper {
+  height: 300rpx;
+}
+
 .banner-image {
   width: 100%;
   height: 300rpx;
@@ -288,5 +281,9 @@ function onBannerClick(banner: any) {
 .section-more {
   font-size: 26rpx;
   color: #1989fa;
+}
+
+.activity-list {
+  height: calc(100vh - 600rpx);
 }
 </style>

@@ -18,27 +18,27 @@
     <view class="info-section card">
       <view class="activity-title">{{ activity.title }}</view>
       <view class="activity-club">
-        <van-icon name="cluster-o" size="28rpx" color="#666" />
+        <uni-icons type="home-filled" size="14" color="#666" />
         <text>{{ activity.clubName }}</text>
       </view>
 
       <view class="info-list">
         <view class="info-item">
-          <van-icon name="clock-o" size="32rpx" color="#1989fa" />
+          <uni-icons type="calendar" size="16" color="#1989fa" />
           <view class="info-content">
             <view class="info-label">活动时间</view>
             <view class="info-value">{{ formatDateTime(activity.startTime) }}</view>
           </view>
         </view>
         <view class="info-item">
-          <van-icon name="location-o" size="32rpx" color="#1989fa" />
+          <uni-icons type="location" size="16" color="#1989fa" />
           <view class="info-content">
             <view class="info-label">活动地点</view>
             <view class="info-value">{{ activity.location }}</view>
           </view>
         </view>
         <view class="info-item">
-          <van-icon name="friends-o" size="32rpx" color="#1989fa" />
+          <uni-icons type="personadd" size="16" color="#1989fa" />
           <view class="info-content">
             <view class="info-label">参与人数</view>
             <view class="info-value">
@@ -60,24 +60,23 @@
     <view class="bottom-bar">
       <view class="bar-left">
         <view class="action-item" @click="onShare">
-          <van-icon name="share-o" size="40rpx" />
+          <uni-icons type="redo" size="20" />
           <text>分享</text>
         </view>
         <view class="action-item" @click="onCollect">
-          <van-icon :name="isCollected ? 'star' : 'star-o'" :color="isCollected ? '#ff9800' : '#666'" size="40rpx" />
+          <uni-icons :type="isCollected ? 'star-filled' : 'star'" :color="isCollected ? '#ff9800' : '#666'" size="20" />
           <text>收藏</text>
         </view>
       </view>
       <view class="bar-right">
-        <van-button
-          type="primary"
-          round
-          block
+        <button
+          class="join-btn"
+          :class="{ disabled: !canJoin }"
           :disabled="!canJoin"
           @click="onJoin"
         >
           {{ joinButtonText }}
-        </van-button>
+        </button>
       </view>
     </view>
   </view>
@@ -140,9 +139,6 @@ function getStatusText(status?: ActivityStatus) {
 }
 
 function onShare() {
-  // #ifdef MP-WEIXIN
-  // 微信小程序分享
-  // #endif
   uni.showToast({ title: '分享功能开发中', icon: 'none' });
 }
 
@@ -330,6 +326,19 @@ onMounted(() => {
 
   .bar-right {
     flex: 1;
+  }
+}
+
+.join-btn {
+  background: linear-gradient(135deg, #1989fa 0%, #096dd9 100%);
+  color: #fff;
+  border-radius: 40rpx;
+  font-size: 28rpx;
+  font-weight: 500;
+  border: none;
+
+  &.disabled {
+    background: #ccc;
   }
 }
 </style>

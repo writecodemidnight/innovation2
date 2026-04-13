@@ -2,42 +2,11 @@ import { createSSRApp } from 'vue';
 import { createPinia } from 'pinia';
 import App from './App.vue';
 
-// 引入Vant组件
-import {
-  Button,
-  Cell,
-  CellGroup,
-  Card,
-  Image,
-  Uploader,
-  Toast,
-  Dialog,
-  Loading,
-  NavBar,
-  Tab,
-  Tabs,
-  List,
-  PullRefresh,
-  Empty,
-  Tag,
-  Rate,
-  Field,
-  Form,
-  Stepper,
-  Calendar,
-  Popup,
-  ActionSheet,
-  Swipe,
-  SwipeItem,
-  Search,
-  Icon,
-  Divider,
-  NoticeBar,
-  Badge,
-  Collapse,
-  CollapseItem,
-} from 'vant';
-import 'vant/lib/index.css';
+// 导入 uni-ui 组件
+import uniIcons from '@dcloudio/uni-ui/lib/uni-icons/uni-icons.vue';
+import uniLoadMore from '@dcloudio/uni-ui/lib/uni-load-more/uni-load-more.vue';
+import uniCard from '@dcloudio/uni-ui/lib/uni-card/uni-card.vue';
+import uniTag from '@dcloudio/uni-ui/lib/uni-tag/uni-tag.vue';
 
 export function createApp() {
   const app = createSSRApp(App);
@@ -45,40 +14,11 @@ export function createApp() {
 
   app.use(pinia);
 
-  // 注册Vant组件
-  app
-    .use(Button)
-    .use(Cell)
-    .use(CellGroup)
-    .use(Card)
-    .use(Image)
-    .use(Uploader)
-    .use(Toast)
-    .use(Dialog)
-    .use(Loading)
-    .use(NavBar)
-    .use(Tab)
-    .use(Tabs)
-    .use(List)
-    .use(PullRefresh)
-    .use(Empty)
-    .use(Tag)
-    .use(Rate)
-    .use(Field)
-    .use(Form)
-    .use(Stepper)
-    .use(Calendar)
-    .use(Popup)
-    .use(ActionSheet)
-    .use(Swipe)
-    .use(SwipeItem)
-    .use(Search)
-    .use(Icon)
-    .use(Divider)
-    .use(NoticeBar)
-    .use(Badge)
-    .use(Collapse)
-    .use(CollapseItem);
+  // 注册全局组件
+  app.component('uni-icons', uniIcons);
+  app.component('uni-load-more', uniLoadMore);
+  app.component('uni-card', uniCard);
+  app.component('uni-tag', uniTag);
 
   return { app };
 }
