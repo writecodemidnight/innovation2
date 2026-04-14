@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import axios from 'axios';
+import { ElMessage } from 'element-plus';
 import { Endpoints } from '@campus/shared';
 import type { User, LoginResponse } from '@campus/shared';
 
@@ -46,9 +47,10 @@ export const useUserStore = defineStore('user', () => {
       localStorage.setItem('access_token', data.accessToken);
       localStorage.setItem('refresh_token', data.refreshToken);
       return true;
-    } catch (error: any) {
+    } catch (error) {
       console.error('登录失败:', error);
-      ElMessage.error(error.response?.data?.message || '登录失败，请检查用户名和密码');
+      const axiosError = error as { response?: { data?: { message?: string } } };
+      ElMessage.error(axiosError.response?.data?.message || '登录失败，请检查用户名和密码');
       return false;
     } finally {
       loading.value = false;
@@ -90,8 +92,8 @@ export const useUserStore = defineStore('user', () => {
     if (storedToken) {
       token.value = storedToken;
       refreshToken.value = storedRefreshToken || '';
-      // 简化处理：标记为已登录，后续可调用API获取完整信息
-      userInfo.value = { id: 0, role: 'CLUB_MEMBER' } as User;
+      // 标记为需要重新获取用户信息，后续调用API获取完整信息
+      userInfo.value = null;
     }
   };
 
