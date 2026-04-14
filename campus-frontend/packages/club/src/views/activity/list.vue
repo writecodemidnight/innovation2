@@ -22,9 +22,9 @@
     <div class="filter-bar">
       <el-radio-group v-model="filterStatus" size="small" @change="handleFilter">
         <el-radio-button label="">全部</el-radio-button>
-        <el-radio-button label="REGISTERING">报名中</el-radio-button>
-        <el-radio-button label="ONGOING">进行中</el-radio-button>
-        <el-radio-button label="COMPLETED">已结束</el-radio-button>
+        <el-radio-button :label="ActivityStatus.REGISTERING">报名中</el-radio-button>
+        <el-radio-button :label="ActivityStatus.ONGOING">进行中</el-radio-button>
+        <el-radio-button :label="ActivityStatus.COMPLETED">已结束</el-radio-button>
       </el-radio-group>
     </div>
 
@@ -104,10 +104,22 @@
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { Search, Plus, ArrowDown } from '@element-plus/icons-vue';
-import { formatDateTime, ActivityStatusMap, ActivityTypeMap } from '@campus/shared';
+import { formatDateTime, ActivityStatusMap, ActivityTypeMap, ActivityStatus } from '@campus/shared';
 import type { Activity } from '@campus/shared';
 import { activityApi } from '@/api/activity';
 import { ElMessage, ElMessageBox } from 'element-plus';
+
+// 状态到Element UI标签类型的映射（提取到外部避免重复创建）
+const STATUS_TYPE_MAP: Record<string, string> = {
+  [ActivityStatus.PLANNING]: 'info',
+  [ActivityStatus.PENDING_APPROVAL]: 'warning',
+  [ActivityStatus.APPROVED]: 'success',
+  [ActivityStatus.REGISTERING]: 'success',
+  [ActivityStatus.ONGOING]: 'primary',
+  [ActivityStatus.COMPLETED]: 'info',
+  [ActivityStatus.REJECTED]: 'danger',
+  [ActivityStatus.CANCELLED]: 'danger',
+};
 
 const router = useRouter();
 
@@ -145,25 +157,15 @@ async function loadActivities() {
 }
 
 function getStatusType(status: string) {
-  const map: Record<string, string> = {
-    PLANNING: 'info',
-    PENDING_APPROVAL: 'warning',
-    APPROVED: 'success',
-    REGISTERING: 'success',
-    ONGOING: 'primary',
-    COMPLETED: 'info',
-    REJECTED: 'danger',
-    CANCELLED: 'danger',
-  };
-  return map[status] || 'info';
+  return STATUS_TYPE_MAP[status] || 'info';
 }
 
 function getStatusLabel(status: string) {
-  return ActivityStatusMap[status as any]?.label || status;
+  return ActivityStatusMap[status as keyof typeof ActivityStatusMap] || status;
 }
 
 function getActivityTypeLabel(type: string) {
-  return ActivityTypeMap[type as any] || type;
+  return ActivityTypeMap[type as keyof typeof ActivityTypeMap] || type;
 }
 
 function handleSearch() {
@@ -177,19 +179,19 @@ function handleFilter() {
 }
 
 function handleCreate() {
-  router.push('/activities/apply');
+  router.push({ name: 'ActivityApply' });
 }
 
 function handleEdit(row: Activity) {
-  router.push(`/activities/edit/${row.id}`);
+  router.push({ name: 'ActivityEdit', params: { id: row.id } });
 }
 
 function handleView(row: Activity) {
-  router.push(`/activities/${row.id}`);
+  router.push({ name: 'ActivityDetail', params: { id: row.id } });
 }
 
 function handleReport(row: Activity) {
-  router.push(`/reports?activityId=${row.id}`);
+  router.push({ name: 'ReportRadar', query: { activityId: row.id } });
 }
 
 async function handleDelete(row: Activity) {

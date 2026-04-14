@@ -2,7 +2,7 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import axios from 'axios';
 import { ElMessage } from 'element-plus';
-import { Endpoints } from '@campus/shared';
+import { Endpoints, UserRoleMap } from '@campus/shared';
 import type { User, LoginResponse } from '@campus/shared';
 
 export const useUserStore = defineStore('user', () => {
@@ -22,15 +22,7 @@ export const useUserStore = defineStore('user', () => {
   );
   const roleLabel = computed(() => {
     if (!userInfo.value) return '';
-    const roleMap: Record<string, string> = {
-      'STUDENT': '学生',
-      'CLUB_MEMBER': '社团成员',
-      'CLUB_MANAGER': '社团管理员',
-      'CLUB_PRESIDENT': '社团负责人',
-      'ADMIN': '系统管理员',
-      'SUPER_ADMIN': '超级管理员',
-    };
-    return roleMap[userInfo.value.role] || userInfo.value.role;
+    return UserRoleMap[userInfo.value.role as keyof typeof UserRoleMap]?.label || userInfo.value.role;
   });
 
   // Actions

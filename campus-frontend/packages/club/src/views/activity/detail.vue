@@ -5,7 +5,7 @@
       <div class="header-actions">
         <el-button @click="$router.back()">返回</el-button>
         <el-button type="primary" @click="handleEdit">编辑</el-button>
-        <el-button type="success" @click="handleSubmit" v-if="activity?.status === 'PLANNING'">
+        <el-button type="success" @click="handleSubmit" v-if="activity?.status === ActivityStatus.PLANNING">
           提交审核
         </el-button>
       </div>
@@ -89,7 +89,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { formatDateTime, ActivityStatusMap, ActivityTypeMap } from '@campus/shared';
+import { formatDateTime, ActivityStatusMap, ActivityTypeMap, ActivityStatus } from '@campus/shared';
 import { activityApi, type ActivityParticipantDto } from '@/api/activity';
 import type { Activity } from '@campus/shared';
 import { ElMessage, ElMessageBox } from 'element-plus';
@@ -102,18 +102,20 @@ const participants = ref<ActivityParticipantDto[]>([]);
 const loading = ref(false);
 const participantsLoading = ref(false);
 
+// 状态到Element UI标签类型的映射（提取到外部避免重复创建）
+const STATUS_TYPE_MAP: Record<string, string> = {
+  [ActivityStatus.PLANNING]: 'info',
+  [ActivityStatus.PENDING_APPROVAL]: 'warning',
+  [ActivityStatus.APPROVED]: 'success',
+  [ActivityStatus.REGISTERING]: 'success',
+  [ActivityStatus.ONGOING]: 'primary',
+  [ActivityStatus.COMPLETED]: 'info',
+  [ActivityStatus.REJECTED]: 'danger',
+  [ActivityStatus.CANCELLED]: 'danger',
+};
+
 function getStatusType(status?: string) {
-  const map: Record<string, string> = {
-    PLANNING: 'info',
-    PENDING_APPROVAL: 'warning',
-    APPROVED: 'success',
-    REGISTERING: 'success',
-    ONGOING: 'primary',
-    COMPLETED: 'info',
-    REJECTED: 'danger',
-    CANCELLED: 'danger',
-  };
-  return map[status || ''] || 'info';
+  return STATUS_TYPE_MAP[status || ''] || 'info';
 }
 
 function getStatusLabel(status?: string) {
@@ -129,23 +131,19 @@ async function loadActivityDetail() {
   if (!id) return;
 
   loading.value = true;
+  participantsLoading.value = true;
   try {
-    activity.value = await activityApi.getById(id);
-    loadParticipants(id);
+    // 并行加载活动详情和参与者列表
+    const [activityRes, participantsRes] = await Promise.all([
+      activityApi.getById(id),
+      activityApi.getParticipants(id),
+    ]);
+    activity.value = activityRes;
+    participants.value = participantsRes;
   } catch (error: any) {
     ElMessage.error(error.message || '获取活动详情失败');
   } finally {
     loading.value = false;
-  }
-}
-
-async function loadParticipants(activityId: number) {
-  participantsLoading.value = true;
-  try {
-    participants.value = await activityApi.getParticipants(activityId);
-  } catch (error: any) {
-    console.error('获取参与者失败:', error);
-  } finally {
     participantsLoading.value = false;
   }
 }
