@@ -52,10 +52,10 @@ axiosClient.interceptors.response.use(
 
 // 导出apiClient
 export const apiClient = {
-  get: <T>(url: string, config?: any) => axiosClient.get<T>(url, config).then(res => res.data),
-  post: <T>(url: string, data?: any, config?: any) => axiosClient.post<T>(url, data, config).then(res => res.data),
-  put: <T>(url: string, data?: any, config?: any) => axiosClient.put<T>(url, data, config).then(res => res.data),
-  delete: <T>(url: string, config?: any) => axiosClient.delete<T>(url, config).then(res => res.data),
+  get: <T>(url: string, config?: any) => axiosClient.get<T>(url, config),
+  post: <T>(url: string, data?: any, config?: any) => axiosClient.post<T>(url, data, config),
+  put: <T>(url: string, data?: any, config?: any) => axiosClient.put<T>(url, data, config),
+  delete: <T>(url: string, config?: any) => axiosClient.delete<T>(url, config),
 };
 
 export type ApiClient = typeof apiClient;
