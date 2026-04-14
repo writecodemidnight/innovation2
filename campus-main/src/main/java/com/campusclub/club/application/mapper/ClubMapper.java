@@ -15,7 +15,18 @@ public interface ClubMapper {
 
     Club toEntity(ClubCreateRequest request);
 
-    @Mapping(target = "username", expression = "java(user != null ? user.getUsername() : null)")
-    @Mapping(target = "nickname", expression = "java(user != null ? user.getNickname() : null)")
-    ClubMemberDto toMemberDto(ClubMember member, User user);
+    default ClubMemberDto toMemberDto(ClubMember member, User user) {
+        if (member == null) {
+            return null;
+        }
+        return new ClubMemberDto(
+            member.getId(),
+            member.getClubId(),
+            member.getUserId(),
+            user != null ? user.getUsername() : null,
+            user != null ? user.getNickname() : null,
+            member.getRole(),
+            member.getJoinedAt()
+        );
+    }
 }
