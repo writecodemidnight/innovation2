@@ -125,12 +125,17 @@ import { Plus } from '@element-plus/icons-vue';
 import { ActivityType, ActivityTypeMap } from '@campus/shared';
 import type { ActivityCreateRequest } from '@campus/shared';
 import type { FormInstance, FormRules, UploadProps } from 'element-plus';
+import { activityApi } from '@/api/activity';
+import { useUserStore } from '@/stores/user';
+import { ElMessage } from 'element-plus';
 
 const route = useRoute();
 const router = useRouter();
+const userStore = useUserStore();
 const formRef = ref<FormInstance>();
 const submitting = ref(false);
 const isEdit = ref(false);
+const activityId = ref<number | null>(null);
 
 // 表单数据
 const form = reactive({
@@ -182,19 +187,26 @@ async function handleSubmit() {
         const data: ActivityCreateRequest = {
           title: form.title,
           description: form.description,
-          clubId: 1, // TODO: 从用户信息获取
+          clubId: userStore.userInfo?.clubId || 1,
           activityType: form.activityType as ActivityType,
           startTime: form.timeRange[0],
           endTime: form.timeRange[1],
           location: form.location,
           maxParticipants: form.maxParticipants,
+          coverImageUrl: form.coverImageUrl,
         };
 
-        // TODO: 调用API提交活动
-        console.log('提交数据:', data);
+        if (isEdit.value && activityId.value) {
+          await activityApi.update(activityId.value, data);
+          ElMessage.success('更新成功');
+        } else {
+          await activityApi.create(data);
+          ElMessage.success('创建成功，等待审核');
+        }
 
-        ElMessage.success(isEdit.value ? '更新成功' : '提交成功，等待审核');
         router.push('/activities');
+      } catch (error: any) {
+        ElMessage.error(error.message || (isEdit.value ? '更新失败' : '创建失败'));
       } finally {
         submitting.value = false;
       }
@@ -202,12 +214,29 @@ async function handleSubmit() {
   });
 }
 
+async function loadActivityDetail(id: number) {
+  try {
+    const activity = await activityApi.getById(id);
+    form.title = activity.title;
+    form.activityType = activity.activityType;
+    form.timeRange = [activity.startTime, activity.endTime];
+    form.location = activity.location;
+    form.coverImageUrl = activity.coverImageUrl;
+    form.maxParticipants = activity.maxParticipants;
+    form.description = activity.description;
+  } catch (error: any) {
+    ElMessage.error(error.message || '获取活动详情失败');
+    router.push('/activities');
+  }
+}
+
 // 编辑模式加载数据
 onMounted(() => {
   const { id } = route.params;
   if (id) {
     isEdit.value = true;
-    // TODO: 加载活动详情
+    activityId.value = Number(id);
+    loadActivityDetail(Number(id));
   }
 });
 </script>

@@ -1,87 +1,85 @@
 <template>
   <div class="activity-detail-page">
     <div class="page-header">
-      <div class="header-left">
-        <el-button @click="$router.back()">返回</el-button>
-        <h2>活动详情</h2>
-      </div>
+      <h2>活动详情</h2>
       <div class="header-actions">
+        <el-button @click="$router.back()">返回</el-button>
         <el-button type="primary" @click="handleEdit">编辑</el-button>
-        <el-button type="danger" @click="handleDelete">删除</el-button>
+        <el-button type="success" @click="handleSubmit" v-if="activity?.status === 'PLANNING'">
+          提交审核
+        </el-button>
       </div>
     </div>
 
-    <el-row :gutter="24">
+    <el-row :gutter="20">
       <el-col :span="16">
-        <el-card>
+        <el-card v-loading="loading">
           <template #header>
             <div class="card-header">
               <span>基本信息</span>
-              <el-tag :type="getStatusType(activity.status)">{{ getStatusLabel(activity.status) }}</el-tag>
+              <el-tag :type="getStatusType(activity?.status)">
+                {{ getStatusLabel(activity?.status) }}
+              </el-tag>
             </div>
           </template>
 
-          <div class="activity-info">
+          <div v-if="activity" class="activity-info">
             <h3 class="activity-title">{{ activity.title }}</h3>
-            <p class="activity-desc">{{ activity.description }}</p>
+            <el-image
+              v-if="activity.coverImageUrl"
+              :src="activity.coverImageUrl"
+              fit="cover"
+              class="cover-image"
+            />
 
             <el-descriptions :column="2" border>
-              <el-descriptions-item label="活动类型">{{ getActivityTypeLabel(activity.activityType) }}</el-descriptions-item>
-              <el-descriptions-item label="社团">{{ activity.clubName }}</el-descriptions-item>
-              <el-descriptions-item label="开始时间">{{ formatDateTime(activity.startTime) }}</el-descriptions-item>
-              <el-descriptions-item label="结束时间">{{ formatDateTime(activity.endTime) }}</el-descriptions-item>
-              <el-descriptions-item label="活动地点">{{ activity.location }}</el-descriptions-item>
-              <el-descriptions-item label="人数限制">{{ activity.maxParticipants }}人</el-descriptions-item>
+              <el-descriptions-item label="活动类型">
+                {{ getActivityTypeLabel(activity.activityType) }}
+              </el-descriptions-item>
+              <el-descriptions-item label="活动地点">
+                {{ activity.location }}
+              </el-descriptions-item>
+              <el-descriptions-item label="开始时间">
+                {{ formatDateTime(activity.startTime) }}
+              </el-descriptions-item>
+              <el-descriptions-item label="结束时间">
+                {{ formatDateTime(activity.endTime) }}
+              </el-descriptions-item>
+              <el-descriptions-item label="报名人数">
+                {{ activity.currentParticipants }}/{{ activity.maxParticipants }}
+              </el-descriptions-item>
+              <el-descriptions-item label="所属社团">
+                {{ activity.clubName || '-' }}
+              </el-descriptions-item>
             </el-descriptions>
-          </div>
-        </el-card>
 
-        <el-card class="stats-card">
-          <template #header>
-            <span>参与统计</span>
-          </template>
-          <el-row :gutter="20">
-            <el-col :span="8">
-              <div class="stat-item">
-                <div class="stat-value">{{ activity.currentParticipants }}</div>
-                <div class="stat-label">已报名</div>
-              </div>
-            </el-col>
-            <el-col :span="8">
-              <div class="stat-item">
-                <div class="stat-value">{{ activity.maxParticipants - activity.currentParticipants }}</div>
-                <div class="stat-label">剩余名额</div>
-              </div>
-            </el-col>
-            <el-col :span="8">
-              <div class="stat-item">
-                <div class="stat-value">{{ Math.round((activity.currentParticipants / activity.maxParticipants) * 100) }}%</div>
-                <div class="stat-label">报名率</div>
-              </div>
-            </el-col>
-          </el-row>
+            <div class="description-section">
+              <h4>活动描述</h4>
+              <p class="description-content">{{ activity.description }}</p>
+            </div>
+          </div>
         </el-card>
       </el-col>
 
       <el-col :span="8">
         <el-card>
           <template #header>
-            <span>效果评估</span>
+            <div class="card-header">
+              <span>参与者列表</span>
+              <el-tag>{{ participants.length }}人报名</el-tag>
+            </div>
           </template>
-          <div v-if="activity.evaluation" class="evaluation-section">
-            <div class="score-display">
-              <div class="score-value">{{ activity.evaluation.score }}</div>
-              <el-rate :model-value="activity.evaluation.score / 20" disabled show-score />
-            </div>
-            <el-divider />
-            <div class="evaluation-metrics">
-              <div v-for="(value, key) in activity.evaluation.metrics" :key="key" class="metric-item">
-                <span class="metric-label">{{ key }}</span>
-                <el-progress :percentage="value" />
-              </div>
-            </div>
-          </div>
-          <el-empty v-else description="暂无评估数据" />
+
+          <el-table :data="participants" v-loading="participantsLoading" size="small">
+            <el-table-column prop="userName" label="姓名" />
+            <el-table-column prop="status" label="状态" width="80">
+              <template #default="{ row }">
+                <el-tag size="small" :type="row.status === 'CHECKED_IN' ? 'success' : 'info'">
+                  {{ row.status === 'CHECKED_IN' ? '已签到' : '已报名' }}
+                </el-tag>
+              </template>
+            </el-table-column>
+          </el-table>
         </el-card>
       </el-col>
     </el-row>
@@ -92,73 +90,91 @@
 import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { formatDateTime, ActivityStatusMap, ActivityTypeMap } from '@campus/shared';
+import { activityApi, type ActivityParticipantDto } from '@/api/activity';
 import type { Activity } from '@campus/shared';
+import { ElMessage, ElMessageBox } from 'element-plus';
 
 const route = useRoute();
 const router = useRouter();
 
-const activity = ref<Partial<Activity>>({
-  id: 1,
-  title: '科技创新讲座',
-  description: '本次讲座将邀请业界专家分享人工智能领域的最新进展。',
-  clubId: 1,
-  clubName: '科技创新社',
-  activityType: 'LECTURE',
-  startTime: new Date(Date.now() + 86400000).toISOString(),
-  endTime: new Date(Date.now() + 86400000 + 7200000).toISOString(),
-  location: '学生活动中心 301报告厅',
-  maxParticipants: 100,
-  currentParticipants: 45,
-  status: 'REGISTERING',
-  evaluation: {
-    score: 85,
-    metrics: {
-      '参与度': 90,
-      '满意度': 85,
-      '互动性': 80,
-    }
-  }
-});
+const activity = ref<Activity | null>(null);
+const participants = ref<ActivityParticipantDto[]>([]);
+const loading = ref(false);
+const participantsLoading = ref(false);
 
-function getStatusType(status: string) {
+function getStatusType(status?: string) {
   const map: Record<string, string> = {
+    PLANNING: 'info',
+    PENDING_APPROVAL: 'warning',
+    APPROVED: 'success',
     REGISTERING: 'success',
-    ONGOING: 'warning',
+    ONGOING: 'primary',
     COMPLETED: 'info',
+    REJECTED: 'danger',
     CANCELLED: 'danger',
   };
-  return map[status] || 'info';
+  return map[status || ''] || 'info';
 }
 
-function getStatusLabel(status: string) {
-  return ActivityStatusMap[status as any]?.label || status;
+function getStatusLabel(status?: string) {
+  return ActivityStatusMap[status as keyof typeof ActivityStatusMap] || status || '-';
 }
 
-function getActivityTypeLabel(type: string) {
-  return ActivityTypeMap[type as any] || type;
+function getActivityTypeLabel(type?: string) {
+  return ActivityTypeMap[type as keyof typeof ActivityTypeMap] || type || '-';
+}
+
+async function loadActivityDetail() {
+  const id = Number(route.params.id);
+  if (!id) return;
+
+  loading.value = true;
+  try {
+    activity.value = await activityApi.getById(id);
+    loadParticipants(id);
+  } catch (error: any) {
+    ElMessage.error(error.message || '获取活动详情失败');
+  } finally {
+    loading.value = false;
+  }
+}
+
+async function loadParticipants(activityId: number) {
+  participantsLoading.value = true;
+  try {
+    participants.value = await activityApi.getParticipants(activityId);
+  } catch (error: any) {
+    console.error('获取参与者失败:', error);
+  } finally {
+    participantsLoading.value = false;
+  }
 }
 
 function handleEdit() {
-  router.push(`/activities/edit/${activity.value.id}`);
+  if (activity.value) {
+    router.push(`/activities/${activity.value.id}/edit`);
+  }
 }
 
-async function handleDelete() {
+async function handleSubmit() {
+  if (!activity.value) return;
+
   try {
-    await ElMessageBox.confirm('确定要删除该活动吗？', '提示', { type: 'warning' });
-    // TODO: 调用删除API
-    ElMessage.success('删除成功');
-    router.push('/activities');
-  } catch {
-    // 取消删除
+    await ElMessageBox.confirm('确定要提交该活动进行审核吗？', '提示', {
+      type: 'info',
+    });
+    await activityApi.submitForApproval(activity.value.id);
+    ElMessage.success('提交成功，等待审核');
+    loadActivityDetail();
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      ElMessage.error(error.message || '提交失败');
+    }
   }
 }
 
 onMounted(() => {
-  const { id } = route.params;
-  if (id) {
-    // TODO: 根据ID加载活动详情
-    console.log('活动ID:', id);
-  }
+  loadActivityDetail();
 });
 </script>
 
@@ -173,14 +189,13 @@ onMounted(() => {
   align-items: center;
   margin-bottom: 24px;
 
-  .header-left {
-    display: flex;
-    align-items: center;
-    gap: 16px;
+  h2 {
+    margin: 0;
+  }
 
-    h2 {
-      margin: 0;
-    }
+  .header-actions {
+    display: flex;
+    gap: 12px;
   }
 }
 
@@ -192,58 +207,29 @@ onMounted(() => {
 
 .activity-info {
   .activity-title {
-    margin: 0 0 16px 0;
+    margin: 0 0 16px;
     font-size: 20px;
   }
 
-  .activity-desc {
-    color: #666;
-    margin-bottom: 24px;
-    line-height: 1.6;
-  }
-}
-
-.stats-card {
-  margin-top: 24px;
-}
-
-.stat-item {
-  text-align: center;
-
-  .stat-value {
-    font-size: 28px;
-    font-weight: 600;
-    color: #409eff;
+  .cover-image {
+    width: 100%;
+    height: 200px;
+    border-radius: 8px;
+    margin-bottom: 16px;
   }
 
-  .stat-label {
-    font-size: 14px;
-    color: #666;
-    margin-top: 8px;
-  }
-}
+  .description-section {
+    margin-top: 24px;
 
-.evaluation-section {
-  .score-display {
-    text-align: center;
-    padding: 20px 0;
-
-    .score-value {
-      font-size: 48px;
-      font-weight: 700;
-      color: #409eff;
+    h4 {
+      margin: 0 0 12px;
+      color: #303133;
     }
-  }
 
-  .evaluation-metrics {
-    .metric-item {
-      margin-bottom: 16px;
-
-      .metric-label {
-        display: block;
-        margin-bottom: 8px;
-        color: #666;
-      }
+    .description-content {
+      color: #606266;
+      line-height: 1.6;
+      white-space: pre-wrap;
     }
   }
 }

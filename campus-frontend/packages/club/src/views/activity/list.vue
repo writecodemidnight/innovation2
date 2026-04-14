@@ -106,6 +106,8 @@ import { useRouter } from 'vue-router';
 import { Search, Plus, ArrowDown } from '@element-plus/icons-vue';
 import { formatDateTime, ActivityStatusMap, ActivityTypeMap } from '@campus/shared';
 import type { Activity } from '@campus/shared';
+import { activityApi } from '@/api/activity';
+import { ElMessage, ElMessageBox } from 'element-plus';
 
 const router = useRouter();
 
@@ -126,21 +128,17 @@ const activities = ref<Partial<Activity>[]>([]);
 async function loadActivities() {
   loading.value = true;
   try {
-    // TODO: 调用API获取活动列表
-    // 模拟数据
-    activities.value = Array.from({ length: 10 }, (_, i) => ({
-      id: i + 1,
-      title: `活动 ${i + 1}`,
-      description: '活动描述',
-      activityType: i % 2 === 0 ? 'LECTURE' : 'WORKSHOP',
-      startTime: new Date(Date.now() + 86400000 * (i + 1)).toISOString(),
-      location: '学生活动中心',
-      maxParticipants: 100,
-      currentParticipants: Math.floor(Math.random() * 100),
-      status: ['REGISTERING', 'ONGOING', 'COMPLETED'][i % 3] as any,
-      coverImageUrl: `https://picsum.photos/100/100?random=${i}`,
-    }));
-    total.value = 50;
+    const params = {
+      page: page.value - 1, // 后端分页从0开始
+      size: pageSize.value,
+      keyword: searchQuery.value || undefined,
+      status: filterStatus.value || undefined,
+    };
+    const response = await activityApi.getList(params);
+    activities.value = response.content;
+    total.value = response.totalElements;
+  } catch (error: any) {
+    ElMessage.error(error.message || '获取活动列表失败');
   } finally {
     loading.value = false;
   }
@@ -148,9 +146,13 @@ async function loadActivities() {
 
 function getStatusType(status: string) {
   const map: Record<string, string> = {
+    PLANNING: 'info',
+    PENDING_APPROVAL: 'warning',
+    APPROVED: 'success',
     REGISTERING: 'success',
-    ONGOING: 'warning',
+    ONGOING: 'primary',
     COMPLETED: 'info',
+    REJECTED: 'danger',
     CANCELLED: 'danger',
   };
   return map[status] || 'info';
@@ -192,14 +194,16 @@ function handleReport(row: Activity) {
 
 async function handleDelete(row: Activity) {
   try {
-    await ElMessageBox.confirm('确定要删除该活动吗？', '提示', {
+    await ElMessageBox.confirm('确定要删除该活动吗？删除后不可恢复', '提示', {
       type: 'warning',
     });
-    // TODO: 调用删除API
+    await activityApi.delete(row.id);
     ElMessage.success('删除成功');
     loadActivities();
-  } catch {
-    // 取消删除
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      ElMessage.error(error.message || '删除失败');
+    }
   }
 }
 

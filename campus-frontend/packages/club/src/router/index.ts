@@ -39,6 +39,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '活动详情', hidden: true },
       },
       {
+        path: 'activities/:id/edit',
+        name: 'ActivityEdit',
+        component: () => import('@/views/activity/apply.vue'),
+        meta: { title: '编辑活动', hidden: true },
+      },
+      {
         path: 'resources/calendar',
         name: 'ResourceCalendar',
         component: () => import('@/views/resource/calendar.vue'),
