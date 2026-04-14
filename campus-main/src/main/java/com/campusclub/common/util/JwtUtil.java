@@ -2,23 +2,29 @@ package com.campusclub.common.util;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.Optional;
 
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class JwtUtil {
 
-    private final JwtProperties jwtProperties;
+    private static final String CLAIM_ROLE = "role";
+    private static final String CLAIM_TYPE = "type";
+    private static final String TOKEN_TYPE_ACCESS = "access";
+    private static final String TOKEN_TYPE_REFRESH = "refresh";
 
-    private SecretKey getSigningKey() {
-        return Keys.hmacShaKeyFor(jwtProperties.getSecret().getBytes(StandardCharsets.UTF_8));
+    private final JwtProperties jwtProperties;
+    private final SecretKey signingKey;
+
+    public JwtUtil(JwtProperties jwtProperties) {
+        this.jwtProperties = jwtProperties;
+        this.signingKey = Keys.hmacShaKeyFor(jwtProperties.getSecret().getBytes(StandardCharsets.UTF_8));
     }
 
     public String generateAccessToken(Long userId, String role) {
@@ -27,11 +33,11 @@ public class JwtUtil {
 
         return Jwts.builder()
                 .subject(userId.toString())
-                .claim("role", role)
-                .claim("type", "access")
+                .claim(CLAIM_ROLE, role)
+                .claim(CLAIM_TYPE, TOKEN_TYPE_ACCESS)
                 .issuedAt(now)
                 .expiration(expiry)
-                .signWith(getSigningKey())
+                .signWith(signingKey)
                 .compact();
     }
 
@@ -41,20 +47,29 @@ public class JwtUtil {
 
         return Jwts.builder()
                 .subject(userId.toString())
-                .claim("type", "refresh")
+                .claim(CLAIM_TYPE, TOKEN_TYPE_REFRESH)
                 .issuedAt(now)
                 .expiration(expiry)
-                .signWith(getSigningKey())
+                .signWith(signingKey)
                 .compact();
     }
 
-    public boolean validateToken(String token) {
+    /**
+     * Validates and parses the token, returning the claims.
+     * This is more efficient than calling validateToken() and then getUserIdFromToken()/getRoleFromToken()
+     * as it only parses the token once.
+     *
+     * @param token the JWT token
+     * @return Optional containing the Claims if valid, empty otherwise
+     */
+    public Optional<Claims> validateAndParseToken(String token) {
         try {
-            Jwts.parser()
-                    .verifyWith(getSigningKey())
+            Claims claims = Jwts.parser()
+                    .verifyWith(signingKey)
                     .build()
-                    .parseSignedClaims(token);
-            return true;
+                    .parseSignedClaims(token)
+                    .getPayload();
+            return Optional.of(claims);
         } catch (ExpiredJwtException e) {
             log.warn("JWT token is expired: {}", e.getMessage());
         } catch (UnsupportedJwtException e) {
@@ -66,12 +81,16 @@ public class JwtUtil {
         } catch (IllegalArgumentException e) {
             log.warn("JWT token is empty or null: {}", e.getMessage());
         }
-        return false;
+        return Optional.empty();
+    }
+
+    public boolean validateToken(String token) {
+        return validateAndParseToken(token).isPresent();
     }
 
     public Long getUserIdFromToken(String token) {
         Claims claims = Jwts.parser()
-                .verifyWith(getSigningKey())
+                .verifyWith(signingKey)
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
@@ -80,14 +99,14 @@ public class JwtUtil {
 
     public String getRoleFromToken(String token) {
         Claims claims = Jwts.parser()
-                .verifyWith(getSigningKey())
+                .verifyWith(signingKey)
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
-        return claims.get("role", String.class);
+        return claims.get(CLAIM_ROLE, String.class);
     }
 
     public long getAccessTokenExpiration() {
-        return jwtProperties.getAccessTokenExpiration() / 1000; // 返回秒数
+        return jwtProperties.getAccessTokenExpiration() / 1000;
     }
 }
