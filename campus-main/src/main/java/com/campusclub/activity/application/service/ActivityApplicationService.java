@@ -129,7 +129,8 @@ public class ActivityApplicationService {
                     HttpStatus.BAD_REQUEST);
         }
 
-        activityRepository.delete(activity);
+        activity.setDeleted(true);
+        activityRepository.save(activity);
     }
 
     @Transactional
