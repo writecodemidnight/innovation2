@@ -24,7 +24,7 @@ public class AuthApplicationService {
 
     @Transactional
     public LoginResponse wechatLogin(WechatLoginRequest request) {
-        WechatSessionResponse session = wechatMpClient.code2Session(request.getCode());
+        WechatSessionResponse session = wechatMpClient.code2Session(request.code());
         String openid = session.getOpenid();
 
         User user = userRepository.findByOpenid(openid)
