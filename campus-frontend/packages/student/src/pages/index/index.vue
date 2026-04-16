@@ -61,7 +61,8 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { ActivityType, ActivityTypeIcon, ActivityTypeMap } from '@campus/shared';
+import { ActivityType, ActivityTypeIcon, ActivityTypeMap, Endpoints } from '@campus/shared';
+import { apiClient } from '@campus/shared';
 import type { Activity } from '@campus/shared';
 import ActivityCard from '@/components/ActivityCard.vue';
 
@@ -105,34 +106,31 @@ async function loadRecommendations() {
   loading.value = true;
   loadMoreStatus.value = 'loading';
 
-  // TODO: 调用API获取推荐活动
-  // 模拟数据
-  const mockData: Activity[] = Array.from({ length: 5 }, (_, i) => ({
-    id: i + 1 + (page.value - 1) * pageSize,
-    title: `精彩活动 ${i + 1 + (page.value - 1) * pageSize}`,
-    description: '这是一个精彩的社团活动，欢迎大家踊跃参加！',
-    clubId: 1,
-    clubName: '科技创新社',
-    organizerId: 1,
-    activityType: ActivityType.WORKSHOP,
-    startTime: new Date(Date.now() + 86400000 * (i + 1)).toISOString(),
-    endTime: new Date(Date.now() + 86400000 * (i + 1) + 7200000).toISOString(),
-    location: '学生活动中心 301',
-    maxParticipants: 50,
-    currentParticipants: 20 + i * 5,
-    status: 'REGISTERING' as any,
-    coverImageUrl: `https://picsum.photos/400/200?random=${i + page.value * 10}`,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  }));
+  try {
+    const data = await apiClient.get<Activity[]>(Endpoints.activities.recommend);
+    if (page.value === 1) {
+      activities.value = data || [];
+    } else {
+      activities.value.push(...(data || []));
+    }
 
-  activities.value.push(...mockData);
-  loading.value = false;
-  loadMoreStatus.value = 'more';
-
-  if (page.value >= 3) {
+    // 如果返回数据少于预期，标记为已结束
+    if (!data || data.length < pageSize) {
+      finished.value = true;
+      loadMoreStatus.value = 'noMore';
+    } else {
+      loadMoreStatus.value = 'more';
+    }
+  } catch (error: any) {
+    uni.showToast({ title: error.message || '获取推荐活动失败', icon: 'none' });
+    // 首次加载失败时显示空状态
+    if (page.value === 1) {
+      activities.value = [];
+    }
     finished.value = true;
     loadMoreStatus.value = 'noMore';
+  } finally {
+    loading.value = false;
   }
 }
 

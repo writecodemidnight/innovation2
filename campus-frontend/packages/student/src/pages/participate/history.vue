@@ -62,6 +62,9 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
+import { Endpoints, ActivityStatusMap } from '@campus/shared';
+import { apiClient } from '@campus/shared';
+import type { Activity } from '@campus/shared';
 
 interface ParticipationRecord {
   id: number;
@@ -70,7 +73,7 @@ interface ParticipationRecord {
   clubName: string;
   startTime: string;
   coverImageUrl: string;
-  status: 'REGISTERING' | 'ONGOING' | 'COMPLETED' | 'CANCELLED';
+  status: string;
   evaluated: boolean;
 }
 
@@ -102,25 +105,36 @@ onMounted(() => {
   loadRecords();
 });
 
-function loadRecords() {
+async function loadRecords() {
   if (loading.value || finished.value) return;
   loading.value = true;
 
-  // 模拟数据
-  const mockData: ParticipationRecord[] = Array.from({ length: 5 }, (_, i) => ({
-    id: i + 1,
-    activityId: i + 1,
-    title: `精彩活动 ${i + 1}`,
-    clubName: '科技创新社',
-    startTime: new Date(Date.now() + 86400000 * (i - 2)).toISOString(),
-    coverImageUrl: `https://picsum.photos/200/200?random=${i}`,
-    status: ['REGISTERING', 'ONGOING', 'COMPLETED', 'COMPLETED', 'CANCELLED'][i] as any,
-    evaluated: i === 2,
-  }));
+  try {
+    const activities = await apiClient.get<Activity[]>(Endpoints.activities.list, {
+      params: { myParticipated: true, page: page.value - 1, size: 10 }
+    });
 
-  records.value.push(...mockData);
-  loading.value = false;
-  if (page.value >= 3) finished.value = true;
+    const newRecords: ParticipationRecord[] = (activities || []).map(activity => ({
+      id: activity.id,
+      activityId: activity.id,
+      title: activity.title,
+      clubName: activity.clubName || '',
+      startTime: activity.startTime,
+      coverImageUrl: activity.coverImageUrl || '/static/images/default-activity.png',
+      status: activity.status,
+      evaluated: false, // TODO: 从后端获取是否已评价
+    }));
+
+    records.value.push(...newRecords);
+
+    if ((activities || []).length < 10) {
+      finished.value = true;
+    }
+  } catch (error: any) {
+    uni.showToast({ title: error.message || '获取参与记录失败', icon: 'none' });
+  } finally {
+    loading.value = false;
+  }
 }
 
 function onLoadMore() {
@@ -151,14 +165,23 @@ function goToEvaluate(id: number) {
   uni.navigateTo({ url: `/pages/evaluate/form?id=${id}` });
 }
 
-function cancelParticipation(id: number) {
+async function cancelParticipation(activityId: number) {
   uni.showModal({
     title: '确认取消',
     content: '确定要取消参加这个活动吗？',
-    success: (res) => {
+    success: async (res) => {
       if (res.confirm) {
-        // TODO: 调用取消API
-        uni.showToast({ title: '已取消', icon: 'success' });
+        try {
+          await apiClient.post(Endpoints.activities.leave(activityId));
+          uni.showToast({ title: '已取消报名', icon: 'success' });
+          // 刷新列表
+          records.value = [];
+          page.value = 1;
+          finished.value = false;
+          loadRecords();
+        } catch (error: any) {
+          uni.showToast({ title: error.message || '取消失败', icon: 'none' });
+        }
       }
     },
   });

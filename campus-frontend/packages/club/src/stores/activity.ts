@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import type { Activity, ActivityListParams, ActivityCreateRequest } from '@campus/shared';
+import { activityApi } from '@/api/activity';
 
 export const useActivityStore = defineStore('activity', () => {
   // State
@@ -13,14 +14,13 @@ export const useActivityStore = defineStore('activity', () => {
   const fetchActivities = async (params: ActivityListParams = {}) => {
     loading.value = true;
     try {
-      // TODO: 调用API获取活动列表
-      // const { data } = await get<ActivityListResponse>(Endpoints.activities.list, { params });
-      // activities.value = data.items;
-      // total.value = data.total;
-
-      // 模拟数据
+      const response = await activityApi.getList(params);
+      activities.value = response.content || [];
+      total.value = response.totalElements || 0;
+    } catch (error) {
       activities.value = [];
       total.value = 0;
+      throw error;
     } finally {
       loading.value = false;
     }
@@ -29,30 +29,27 @@ export const useActivityStore = defineStore('activity', () => {
   const fetchActivityDetail = async (id: number) => {
     loading.value = true;
     try {
-      // TODO: 调用API获取活动详情
-      // const data = await get<Activity>(Endpoints.activities.detail(id));
-      // currentActivity.value = data;
+      const data = await activityApi.getDetail(id);
+      currentActivity.value = data;
+      return data;
+    } catch (error) {
+      currentActivity.value = null;
+      throw error;
     } finally {
       loading.value = false;
     }
   };
 
   const createActivity = async (data: ActivityCreateRequest) => {
-    // TODO: 调用API创建活动
-    // return await post<Activity>(Endpoints.activities.create, data);
-    return null;
+    return await activityApi.create(data);
   };
 
   const updateActivity = async (id: number, data: Partial<ActivityCreateRequest>) => {
-    // TODO: 调用API更新活动
-    // return await put<Activity>(Endpoints.activities.update(id), data);
-    return null;
+    return await activityApi.update(id, data);
   };
 
   const deleteActivity = async (id: number) => {
-    // TODO: 调用API删除活动
-    // return await del(Endpoints.activities.delete(id));
-    return null;
+    return await activityApi.delete(id);
   };
 
   return {

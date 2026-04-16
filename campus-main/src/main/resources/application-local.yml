@@ -1,0 +1,31 @@
+# Local test configuration with PostgreSQL
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/campus_club
+    username: postgres
+    password: 123456
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+    show-sql: true
+
+  # Disable Flyway for local testing
+  flyway:
+    enabled: false
+
+  # Disable Redis for local testing
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+
+logging:
+  level:
+    com.campusclub: DEBUG
+    org.springframework.security: DEBUG

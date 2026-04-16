@@ -125,6 +125,7 @@ export interface ActivityEvaluationReport {
   evaluationCount: number;
   averageRating: number;
   aiInsights?: string;
+  strengths?: string;
   improvementSuggestions?: string[];
 }
 

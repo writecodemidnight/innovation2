@@ -69,20 +69,12 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
+import { Endpoints } from '@campus/shared';
+import { apiClient } from '@campus/shared';
+import type { Activity } from '@campus/shared';
 
-interface Activity {
-  id: number;
-  title: string;
-  clubName: string;
-  coverImageUrl: string;
-}
-
-const activity = ref<Activity>({
-  id: 1,
-  title: '科技创新讲座：AI前沿技术探索',
-  clubName: '科技创新社',
-  coverImageUrl: 'https://picsum.photos/400/200',
-});
+const activity = ref<Partial<Activity>>({});
+const activityId = ref<number | null>(null);
 
 const form = ref({
   rating: 5,
@@ -102,9 +94,19 @@ onMounted(() => {
   const currentPage = pages[pages.length - 1];
   const { id } = currentPage.$page?.options || {};
   if (id) {
-    console.log('评价活动ID:', id);
+    activityId.value = Number(id);
+    loadActivityDetail(Number(id));
   }
 });
+
+async function loadActivityDetail(id: number) {
+  try {
+    const data = await apiClient.get<Activity>(Endpoints.activities.detail(id));
+    activity.value = data;
+  } catch (error: any) {
+    uni.showToast({ title: error.message || '获取活动信息失败', icon: 'none' });
+  }
+}
 
 function choosePhoto() {
   uni.chooseImage({
@@ -121,21 +123,68 @@ function removePhoto(index: number) {
   form.value.photos.splice(index, 1);
 }
 
-function submit() {
-  if (!canSubmit.value) return;
+async function submit() {
+  if (!canSubmit.value || !activityId.value) return;
 
   uni.showModal({
     title: '确认提交',
     content: '确定要提交评价吗？',
-    success: (res) => {
+    success: async (res) => {
       if (res.confirm) {
-        // TODO: 调用提交API
-        uni.showToast({ title: '评价成功', icon: 'success' });
-        setTimeout(() => {
-          uni.navigateBack();
-        }, 1500);
+        try {
+          uni.showLoading({ title: '提交中...' });
+
+          // 先上传图片（如果有）
+          const uploadedPhotos: string[] = [];
+          if (form.value.photos.length > 0) {
+            for (const photo of form.value.photos) {
+              const result = await uploadImage(photo);
+              if (result) uploadedPhotos.push(result);
+            }
+          }
+
+          // 提交评价
+          await apiClient.post(Endpoints.activities.evaluate(activityId.value!), {
+            rating: form.value.rating,
+            organizationRating: form.value.organizationRating,
+            contentRating: form.value.contentRating,
+            content: form.value.comment,
+            photos: uploadedPhotos,
+          });
+
+          uni.hideLoading();
+          uni.showToast({ title: '评价成功', icon: 'success' });
+          setTimeout(() => {
+            uni.navigateBack();
+          }, 1500);
+        } catch (error: any) {
+          uni.hideLoading();
+          uni.showToast({ title: error.message || '评价失败', icon: 'none' });
+        }
       }
     },
+  });
+}
+
+async function uploadImage(filePath: string): Promise<string | null> {
+  return new Promise((resolve) => {
+    uni.uploadFile({
+      url: Endpoints.upload.image,
+      filePath,
+      name: 'file',
+      header: {
+        Authorization: `Bearer ${uni.getStorageSync('access_token')}`,
+      },
+      success: (res) => {
+        if (res.statusCode === 200) {
+          const data = JSON.parse(res.data);
+          resolve(data.url || null);
+        } else {
+          resolve(null);
+        }
+      },
+      fail: () => resolve(null),
+    });
   });
 }
 </script>

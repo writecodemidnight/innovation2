@@ -86,7 +86,7 @@ const userAvatar = computed(() => {
 const handleCommand = (command: string) => {
   switch (command) {
     case 'profile':
-      // TODO: 跳转到个人资料页
+      router.push('/profile');
       break;
     case 'logout':
       userStore.logout();

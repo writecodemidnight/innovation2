@@ -62,37 +62,18 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { formatDateTime } from '@campus/shared';
+import { formatDateTime, Endpoints } from '@campus/shared';
+import { axiosClient } from '@campus/shared';
+import { ElMessage } from 'element-plus';
 
-const dateRange = ref([]);
+const dateRange = ref<string[]>([]);
 const filterStatus = ref('');
 const loading = ref(false);
 const page = ref(1);
 const pageSize = ref(10);
-const total = ref(100);
+const total = ref(0);
 
-const historyList = ref([
-  {
-    id: 1,
-    type: 'activity',
-    name: '科技创新讲座',
-    applicant: '张三',
-    approver: '管理员',
-    approveTime: new Date(Date.now() - 86400000).toISOString(),
-    result: 'approved',
-    remark: '活动内容充实，同意举办',
-  },
-  {
-    id: 2,
-    type: 'resource',
-    name: '学生活动中心301报告厅',
-    applicant: '李四',
-    approver: '管理员',
-    approveTime: new Date(Date.now() - 172800000).toISOString(),
-    result: 'approved',
-    remark: '时间冲突，建议调整',
-  },
-]);
+const historyList = ref<any[]>([]);
 
 function handleSearch() {
   page.value = 1;
@@ -102,7 +83,25 @@ function handleSearch() {
 async function loadData() {
   loading.value = true;
   try {
-    // TODO: 调用API获取历史记录
+    const params: Record<string, any> = {
+      page: page.value - 1,
+      size: pageSize.value,
+    };
+
+    if (dateRange.value?.length === 2) {
+      params.startDate = dateRange.value[0];
+      params.endDate = dateRange.value[1];
+    }
+
+    if (filterStatus.value) {
+      params.status = filterStatus.value;
+    }
+
+    const response = await axiosClient.apiClient.get<any>(Endpoints.approval.history, { params });
+    historyList.value = response?.content || [];
+    total.value = response?.totalElements || 0;
+  } catch (error: any) {
+    ElMessage.error(error.message || '获取审批历史失败');
   } finally {
     loading.value = false;
   }

@@ -105,45 +105,21 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue';
+import { ref, reactive, onMounted } from 'vue';
 import { Plus } from '@element-plus/icons-vue';
 import type { FormInstance, FormRules } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import { formatDateTime, Endpoints, ResourceTypeMap } from '@campus/shared';
+import { axiosClient } from '@campus/shared';
+import type { Resource } from '@campus/shared';
 
 const loading = ref(false);
-const totalResources = ref(10);
-const availableResources = ref(8);
-const maintenanceResources = ref(2);
-const utilizationRate = ref(75);
+const totalResources = ref(0);
+const availableResources = ref(0);
+const maintenanceResources = ref(0);
+const utilizationRate = ref(0);
 
-const resources = ref([
-  {
-    id: 1,
-    name: '学生活动中心301报告厅',
-    type: '报告厅',
-    capacity: 200,
-    location: '学生活动中心3楼',
-    status: 'available',
-    manager: '王老师',
-  },
-  {
-    id: 2,
-    name: '学生活动中心302会议室',
-    type: '会议室',
-    capacity: 50,
-    location: '学生活动中心3楼',
-    status: 'available',
-    manager: '李老师',
-  },
-  {
-    id: 3,
-    name: '室外篮球场',
-    type: '运动场地',
-    capacity: 500,
-    location: '体育馆北侧',
-    status: 'maintenance',
-    manager: '张老师',
-  },
-]);
+const resources = ref<Resource[]>([]);
 
 const dialogVisible = ref(false);
 const isEdit = ref(false);
@@ -210,22 +186,57 @@ function handleSchedule(row: any) {
 async function handleDelete(row: any) {
   try {
     await ElMessageBox.confirm('确定要删除该资源吗？', '提示', { type: 'warning' });
+    await axiosClient.apiClient.delete(Endpoints.resources.delete(row.id));
     ElMessage.success('删除成功');
-  } catch {
-    // 取消
+    loadData();
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      ElMessage.error(error.message || '删除失败');
+    }
   }
 }
 
 async function handleSubmit() {
   if (!formRef.value) return;
-  await formRef.value.validate((valid) => {
+  await formRef.value.validate(async (valid) => {
     if (valid) {
-      // TODO: 调用API
-      ElMessage.success(isEdit.value ? '编辑成功' : '添加成功');
-      dialogVisible.value = false;
+      try {
+        if (isEdit.value && form.id) {
+          await axiosClient.apiClient.put(Endpoints.resources.update(form.id), form);
+        } else {
+          await axiosClient.apiClient.post(Endpoints.resources.create, form);
+        }
+        ElMessage.success(isEdit.value ? '编辑成功' : '添加成功');
+        dialogVisible.value = false;
+        loadData();
+      } catch (error: any) {
+        ElMessage.error(error.message || '保存失败');
+      }
     }
   });
 }
+
+async function loadData() {
+  loading.value = true;
+  try {
+    const response = await axiosClient.apiClient.get<any>(Endpoints.resources.list);
+    resources.value = response?.content || [];
+    totalResources.value = resources.value.length;
+    availableResources.value = resources.value.filter(r => r.status === 'AVAILABLE').length;
+    maintenanceResources.value = resources.value.filter(r => r.status === 'MAINTENANCE').length;
+    utilizationRate.value = Math.round(
+      (resources.value.filter(r => r.status === 'IN_USE').length / totalResources.value) * 100
+    ) || 0;
+  } catch (error: any) {
+    ElMessage.error(error.message || '获取资源列表失败');
+  } finally {
+    loading.value = false;
+  }
+}
+
+onMounted(() => {
+  loadData();
+});
 </script>
 
 <style scoped lang="scss">

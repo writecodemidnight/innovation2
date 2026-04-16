@@ -107,7 +107,7 @@ function previewPhoto(index: number) {
   });
 }
 
-function submit() {
+async function submit() {
   if (photos.value.length === 0) {
     uni.showToast({ title: '请至少上传一张照片', icon: 'none' });
     return;
@@ -115,14 +115,61 @@ function submit() {
 
   uni.showLoading({ title: '上传中...' });
 
-  // TODO: 调用上传API
-  setTimeout(() => {
+  try {
+    const uploadedUrls: string[] = [];
+
+    for (const photo of photos.value) {
+      const url = await uploadImage(photo);
+      if (url) uploadedUrls.push(url);
+    }
+
+    if (uploadedUrls.length === 0) {
+      throw new Error('图片上传失败');
+    }
+
     uni.hideLoading();
     uni.showToast({ title: '上传成功', icon: 'success' });
+
+    // 返回上传后的图片URL给上一页
+    const pages = getCurrentPages();
+    const prevPage = pages[pages.length - 2] as any;
+    if (prevPage && prevPage.$vm) {
+      prevPage.$vm.handlePhotosUploaded?.(uploadedUrls);
+    }
+
     setTimeout(() => {
       uni.navigateBack();
     }, 1500);
-  }, 1500);
+  } catch (error: any) {
+    uni.hideLoading();
+    uni.showToast({ title: error.message || '上传失败', icon: 'none' });
+  }
+}
+
+async function uploadImage(filePath: string): Promise<string | null> {
+  return new Promise((resolve) => {
+    uni.uploadFile({
+      url: '/api/upload/image',
+      filePath,
+      name: 'file',
+      header: {
+        Authorization: `Bearer ${uni.getStorageSync('access_token')}`,
+      },
+      success: (res) => {
+        if (res.statusCode === 200) {
+          try {
+            const data = JSON.parse(res.data);
+            resolve(data.url || null);
+          } catch {
+            resolve(null);
+          }
+        } else {
+          resolve(null);
+        }
+      },
+      fail: () => resolve(null),
+    });
+  });
 }
 </script>
 

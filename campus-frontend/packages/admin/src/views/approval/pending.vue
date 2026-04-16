@@ -81,7 +81,9 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { formatDateTime } from '@campus/shared';
+import { formatDateTime, Endpoints } from '@campus/shared';
+import { axiosClient } from '@campus/shared';
+import { ElMessage } from 'element-plus';
 
 const activeTab = ref('activity');
 const loading = ref(false);
@@ -90,33 +92,14 @@ const dialogVisible = ref(false);
 const remark = ref('');
 const currentItem = ref<any>({});
 
-const activityApprovals = ref([
-  {
-    id: 1,
-    title: '科技创新讲座',
-    clubName: '科技创新社',
-    applicant: '张三',
-    applyTime: new Date(Date.now() - 3600000).toISOString(),
-  },
-  {
-    id: 2,
-    title: '编程工作坊',
-    clubName: '计算机协会',
-    applicant: '李四',
-    applyTime: new Date(Date.now() - 7200000).toISOString(),
-  },
-]);
+const activityApprovals = ref<any[]>([]);
+const resourceApprovals = ref<any[]>([]);
 
-const resourceApprovals = ref([
-  {
-    id: 1,
-    resourceName: '学生活动中心301报告厅',
-    activityTitle: '科技创新讲座',
-    startTime: new Date(Date.now() + 86400000).toISOString(),
-    endTime: new Date(Date.now() + 86400000 + 7200000).toISOString(),
-    applicant: '张三',
-  },
-]);
+// 审批类型映射
+const approvalTypeMap: Record<string, string> = {
+  activity: '活动审批',
+  resource: '资源预约',
+};
 
 function handleTabChange() {
   loadData();
@@ -144,31 +127,47 @@ function handleReject(row: any) {
 }
 
 async function confirmApprove() {
+  if (!currentItem.value?.id) return;
   try {
-    // TODO: 调用审批API
+    await axiosClient.apiClient.post(Endpoints.approval.approve(currentItem.value.id), {
+      remark: remark.value,
+    });
     ElMessage.success('审批通过');
     dialogVisible.value = false;
     loadData();
-  } catch {
-    // 错误处理
+  } catch (error: any) {
+    ElMessage.error(error.message || '审批失败');
   }
 }
 
 async function confirmReject() {
+  if (!currentItem.value?.id) return;
   try {
-    // TODO: 调用审批API
+    await axiosClient.apiClient.post(Endpoints.approval.reject(currentItem.value.id), {
+      remark: remark.value,
+    });
     ElMessage.success('已拒绝');
     dialogVisible.value = false;
     loadData();
-  } catch {
-    // 错误处理
+  } catch (error: any) {
+    ElMessage.error(error.message || '审批失败');
   }
 }
 
 async function loadData() {
   loading.value = true;
   try {
-    // TODO: 调用API获取审批列表
+    const data = await axiosClient.apiClient.get<any[]>(Endpoints.approval.pending, {
+      params: { type: activeTab.value },
+    });
+    if (activeTab.value === 'activity') {
+      activityApprovals.value = data || [];
+    } else {
+      resourceApprovals.value = data || [];
+    }
+    pendingCount.value = (activityApprovals.value.length + resourceApprovals.value.length);
+  } catch (error: any) {
+    ElMessage.error(error.message || '获取审批列表失败');
   } finally {
     loading.value = false;
   }

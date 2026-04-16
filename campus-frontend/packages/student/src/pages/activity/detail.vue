@@ -84,25 +84,13 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
-import { ActivityStatus, formatDateTime } from '@campus/shared';
+import { ActivityStatus, ActivityStatusMap, formatDateTime, Endpoints } from '@campus/shared';
+import { apiClient } from '@campus/shared';
 import type { Activity } from '@campus/shared';
 
 // 活动数据
-const activity = ref<Partial<Activity>>({
-  id: 1,
-  title: '科技创新讲座：AI前沿技术探索',
-  description: '本次讲座将邀请业界专家分享人工智能领域的最新进展，包括大语言模型、计算机视觉等前沿技术。欢迎对AI感兴趣的同学积极参加！',
-  clubId: 1,
-  clubName: '科技创新社',
-  activityType: 'LECTURE',
-  startTime: new Date(Date.now() + 86400000).toISOString(),
-  endTime: new Date(Date.now() + 86400000 + 7200000).toISOString(),
-  location: '学生活动中心 301报告厅',
-  maxParticipants: 100,
-  currentParticipants: 45,
-  status: 'REGISTERING' as ActivityStatus,
-  coverImageUrl: 'https://picsum.photos/750/400',
-});
+const activity = ref<Partial<Activity>>({});
+const activityId = ref<number | null>(null);
 
 const isCollected = ref(false);
 const hasJoined = ref(false);
@@ -150,21 +138,36 @@ function onCollect() {
   });
 }
 
-function onJoin() {
-  if (!canJoin.value) return;
+async function onJoin() {
+  if (!canJoin.value || !activityId.value) return;
 
   uni.showModal({
     title: '确认报名',
     content: `确定要报名参加"${activity.value.title}"吗？`,
-    success: (res) => {
+    success: async (res) => {
       if (res.confirm) {
-        // TODO: 调用报名API
-        hasJoined.value = true;
-        activity.value.currentParticipants = (activity.value.currentParticipants || 0) + 1;
-        uni.showToast({ title: '报名成功', icon: 'success' });
+        try {
+          await apiClient.post(Endpoints.activities.join(activityId.value!));
+          hasJoined.value = true;
+          activity.value.currentParticipants = (activity.value.currentParticipants || 0) + 1;
+          uni.showToast({ title: '报名成功', icon: 'success' });
+        } catch (error: any) {
+          uni.showToast({ title: error.message || '报名失败', icon: 'none' });
+        }
       }
     },
   });
+}
+
+async function loadActivityDetail(id: number) {
+  try {
+    const data = await apiClient.get<Activity>(Endpoints.activities.detail(id));
+    activity.value = data;
+    activityId.value = id;
+    // TODO: 检查用户是否已报名
+  } catch (error: any) {
+    uni.showToast({ title: error.message || '获取活动详情失败', icon: 'none' });
+  }
 }
 
 onMounted(() => {
@@ -173,8 +176,7 @@ onMounted(() => {
   const currentPage = pages[pages.length - 1];
   const { id } = currentPage.$page?.options || {};
   if (id) {
-    // TODO: 根据ID获取活动详情
-    console.log('活动ID:', id);
+    loadActivityDetail(Number(id));
   }
 });
 </script>

@@ -1,7 +1,9 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import type { User, UserRole } from '@campus/shared';
-import { UserRoleMap } from '@campus/shared';
+import { UserRoleMap, Endpoints } from '@campus/shared';
+import { apiClient } from '@campus/shared';
+import { clearTokenCache } from '@campus/shared/api';
 
 export const useUserStore = defineStore('user', () => {
   // State
@@ -24,32 +26,64 @@ export const useUserStore = defineStore('user', () => {
   const login = async (credentials: { username: string; password: string }) => {
     loading.value = true;
     try {
-      // TODO: 调用登录API
-      // 模拟登录成功
-      token.value = 'mock_admin_token';
-      userInfo.value = {
-        id: 1,
-        username: credentials.username,
-        realName: '管理员',
-        role: UserRole.ADMIN,
-        status: 'ACTIVE' as any,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      localStorage.setItem('admin_token', token.value);
+      // 调用后端登录API
+      const response = await apiClient.post<{ accessToken: string; user: User }>(
+        Endpoints.auth.login,
+        credentials
+      );
+
+      token.value = response.accessToken;
+      userInfo.value = response.user;
+      localStorage.setItem('admin_token', response.accessToken);
+
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error('登录失败:', error);
+      // 如果后端API不可用，降级到模拟登录（开发阶段）
+      if (error.message?.includes('Network Error') || error.response?.status === 404) {
+        console.warn('后端API不可用，使用模拟登录');
+        return mockLogin(credentials);
+      }
       return false;
     } finally {
       loading.value = false;
     }
   };
 
+  // 模拟登录（开发阶段备用）
+  const mockLogin = (credentials: { username: string; password: string }) => {
+    token.value = 'mock_admin_token';
+    userInfo.value = {
+      id: 1,
+      username: credentials.username,
+      realName: '管理员',
+      role: UserRole.ADMIN,
+      status: 'ACTIVE' as any,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    localStorage.setItem('admin_token', token.value);
+    return true;
+  };
+
   const logout = () => {
     token.value = '';
     userInfo.value = null;
     localStorage.removeItem('admin_token');
+    clearTokenCache();
+  };
+
+  const fetchUserInfo = async () => {
+    if (!token.value) return;
+    try {
+      const user = await apiClient.get<User>(Endpoints.auth.profile);
+      userInfo.value = user;
+    } catch (error) {
+      console.error('获取用户信息失败:', error);
+      if ((error as any)?.response?.status === 401) {
+        logout();
+      }
+    }
   };
 
   return {
@@ -61,5 +95,6 @@ export const useUserStore = defineStore('user', () => {
     roleLabel,
     login,
     logout,
+    fetchUserInfo,
   };
 });

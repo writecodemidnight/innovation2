@@ -4,25 +4,36 @@ import com.campusclub.dto.AlgorithmRequest;
 import com.campusclub.dto.AlgorithmResponse;
 import com.campusclub.exception.AlgorithmException;
 import com.campusclub.exception.AlgorithmTimeoutException;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.web.client.HttpClientErrorException;
 
 import java.time.Duration;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeoutException;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class AlgorithmService {
 
+    // 算法类型常量
+    private static final String ALGO_KMEANS = "KMEANS";
+    private static final String ALGO_AHP = "AHP";
+    private static final String ALGO_LSTM = "LSTM";
+    private static final String ALGO_GA = "GA";
+
     private final RestTemplate restTemplate;
-    private final RedisTemplate<String, Object> redisTemplate;
+    private RedisTemplate<String, Object> redisTemplate;
+
+    @Autowired
+    public AlgorithmService(RestTemplate restTemplate, Optional<RedisTemplate<String, Object>> redisTemplateOpt) {
+        this.restTemplate = restTemplate;
+        this.redisTemplate = redisTemplateOpt.orElse(null);
+    }
 
     @Value("${algorithm.service.url:http://algorithm-service:8000}")
     private String algorithmServiceUrl;
@@ -98,19 +109,18 @@ public class AlgorithmService {
     }
 
     private String generateCacheKey(AlgorithmRequest request) {
-        String paramsKey = "empty";
-        if (request.getParameters() != null && !request.getParameters().isEmpty()) {
-            // 使用参数键值对的排序后字符串表示，避免hashCode冲突
-            paramsKey = request.getParameters().entrySet().stream()
-                    .sorted(Map.Entry.comparingByKey())
-                    .map(e -> e.getKey() + "=" + e.getValue())
-                    .reduce((a, b) -> a + "&" + b)
-                    .orElse("empty");
-        }
+        String paramsKey = request.getParameters().entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .map(e -> e.getKey() + "=" + e.getValue())
+                .reduce((a, b) -> a + "&" + b)
+                .orElse("empty");
         return String.format("algorithm:%s:%s", request.getAlgorithmType(), paramsKey);
     }
 
     private AlgorithmResponse getFromCache(String cacheKey) {
+        if (redisTemplate == null) {
+            return null;
+        }
         try {
             return (AlgorithmResponse) redisTemplate.opsForValue().get(cacheKey);
         } catch (Exception e) {
@@ -120,6 +130,9 @@ public class AlgorithmService {
     }
 
     private void cacheResponse(String cacheKey, AlgorithmResponse response, long ttlSeconds) {
+        if (redisTemplate == null) {
+            return;
+        }
         try {
             redisTemplate.opsForValue().set(cacheKey, response, Duration.ofSeconds(ttlSeconds));
         } catch (Exception e) {
@@ -129,8 +142,8 @@ public class AlgorithmService {
 
     private long getCacheTTL(String algorithmType) {
         return switch (algorithmType.toUpperCase()) {
-            case "KMEANS", "AHP" -> extendedCacheTtl;
-            case "LSTM", "GA" -> mediumCacheTtl;
+            case ALGO_KMEANS, ALGO_AHP -> extendedCacheTtl;
+            case ALGO_LSTM, ALGO_GA -> mediumCacheTtl;
             default -> standardCacheTtl;
         };
     }

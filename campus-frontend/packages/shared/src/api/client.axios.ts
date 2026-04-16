@@ -6,6 +6,22 @@
 import axios from 'axios';
 import type { ApiResponse } from './types';
 
+// 内存中缓存token，避免每次请求都读取localStorage
+let cachedToken: string | null = null;
+
+// 从localStorage读取token
+const getToken = (): string | null => {
+  if (cachedToken === null) {
+    cachedToken = localStorage.getItem('access_token');
+  }
+  return cachedToken;
+};
+
+// 清除缓存的token
+export const clearTokenCache = (): void => {
+  cachedToken = null;
+};
+
 // 创建axios实例
 const axiosClient = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
@@ -18,7 +34,7 @@ const axiosClient = axios.create({
 // 请求拦截器：添加Authorization头
 axiosClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('access_token');
+    const token = getToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -41,21 +57,28 @@ axiosClient.interceptors.response.use(
   },
   (error) => {
     if (error.response?.status === 401) {
-      // Token过期，清除并跳转登录
+      clearTokenCache();
       localStorage.removeItem('access_token');
       localStorage.removeItem('refresh_token');
-      window.location.href = '/club/login';
+      // 根据当前路径判断跳转的登录页
+      const currentPath = window.location.pathname;
+      const loginPath = currentPath.startsWith('/admin') ? '/admin/login' : '/club/login';
+      window.location.href = loginPath;
     }
     return Promise.reject(error);
   }
 );
 
-// 导出apiClient
-export const apiClient = {
-  get: <T>(url: string, config?: any) => axiosClient.get<T>(url, config),
-  post: <T>(url: string, data?: any, config?: any) => axiosClient.post<T>(url, data, config),
-  put: <T>(url: string, data?: any, config?: any) => axiosClient.put<T>(url, data, config),
-  delete: <T>(url: string, config?: any) => axiosClient.delete<T>(url, config),
+// 导出 axiosApiClient with correct return types (data only, not AxiosResponse)
+export const axiosApiClient = {
+  get: <T>(url: string, config?: any): Promise<T> => axiosClient.get(url, config),
+  post: <T>(url: string, data?: any, config?: any): Promise<T> => axiosClient.post(url, data, config),
+  put: <T>(url: string, data?: any, config?: any): Promise<T> => axiosClient.put(url, data, config),
+  delete: <T>(url: string, config?: any): Promise<T> => axiosClient.delete(url, config),
+  patch: <T>(url: string, data?: any, config?: any): Promise<T> => axiosClient.patch(url, data, config),
 };
 
-export type ApiClient = typeof apiClient;
+// 兼容旧代码的别名导出
+export const apiClient = axiosApiClient;
+
+export type ApiClient = typeof axiosApiClient;

@@ -3,10 +3,10 @@
     <!-- 用户信息卡片 -->
     <view class="user-card" :style="{ paddingTop: statusBarHeight + 60 + 'px' }">
       <view class="user-info">
-        <image class="avatar" :src="user.avatar || 'https://picsum.photos/100/100'" mode="aspectFill" />
+        <image class="avatar" :src="user?.avatar || '/static/images/default-avatar.png'" mode="aspectFill" />
         <view class="user-detail">
-          <view class="nickname">{{ user.nickname || '未登录' }}</view>
-          <view class="student-id">{{ user.studentId || '点击登录' }}</view>
+          <view class="nickname">{{ user?.realName || user?.username || '未登录' }}</view>
+          <view class="student-id">{{ user?.studentId || '点击登录' }}</view>
         </view>
         <uni-icons type="right" size="20" color="#fff" @click="goToSettings" />
       </view>
@@ -70,7 +70,7 @@
     </view>
 
     <!-- 退出登录 -->
-    <view v-if="user.isLogin" class="logout-section">
+    <view v-if="user" class="logout-section">
       <button class="logout-btn" @click="logout">退出登录</button>
     </view>
   </view>
@@ -78,23 +78,20 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
+import { Endpoints } from '@campus/shared';
+import { apiClient } from '@campus/shared';
+import type { User } from '@campus/shared';
 
-interface User {
-  nickname: string;
-  studentId: string;
-  avatar: string;
-  isLogin: boolean;
+interface UserStats {
+  participated: number;
+  evaluated: number;
+  collected: number;
 }
 
 const statusBarHeight = ref(20);
-const user = ref<User>({
-  nickname: '',
-  studentId: '',
-  avatar: '',
-  isLogin: false,
-});
+const user = ref<User | null>(null);
 
-const stats = ref({
+const stats = ref<UserStats>({
   participated: 0,
   evaluated: 0,
   collected: 0,
@@ -103,24 +100,22 @@ const stats = ref({
 onMounted(() => {
   const systemInfo = uni.getSystemInfoSync();
   statusBarHeight.value = systemInfo.statusBarHeight || 20;
-
-  // TODO: 获取用户信息
   loadUserInfo();
 });
 
-function loadUserInfo() {
-  // 模拟数据
-  user.value = {
-    nickname: '张三',
-    studentId: '2024001001',
-    avatar: 'https://picsum.photos/100/100',
-    isLogin: true,
-  };
-  stats.value = {
-    participated: 12,
-    evaluated: 8,
-    collected: 5,
-  };
+async function loadUserInfo() {
+  try {
+    const data = await apiClient.get<User>(Endpoints.auth.profile);
+    user.value = data;
+    // 获取用户统计数据
+    if (data?.id) {
+      const userStats = await apiClient.get<UserStats>(Endpoints.users.stats(data.id));
+      stats.value = userStats || { participated: 0, evaluated: 0, collected: 0 };
+    }
+  } catch (error: any) {
+    // 未登录或获取失败
+    user.value = null;
+  }
 }
 
 function goToSettings() {
@@ -147,14 +142,19 @@ function goToAbout() {
   uni.showToast({ title: '功能开发中', icon: 'none' });
 }
 
-function logout() {
+async function logout() {
   uni.showModal({
     title: '确认退出',
     content: '确定要退出登录吗？',
-    success: (res) => {
+    success: async (res) => {
       if (res.confirm) {
-        // TODO: 调用退出登录API
-        user.value.isLogin = false;
+        try {
+          await apiClient.post(Endpoints.auth.logout);
+        } catch (error) {
+          // 即使退出API失败也清除本地状态
+        }
+        user.value = null;
+        uni.removeStorageSync('access_token');
         uni.showToast({ title: '已退出', icon: 'success' });
       }
     },

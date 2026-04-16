@@ -66,6 +66,16 @@ function getToken(): string | null {
   return null;
 }
 
+// 清除token缓存
+export const clearTokenCache = (): void => {
+  if (typeof uni !== 'undefined') {
+    uni.removeStorageSync('access_token');
+  }
+  if (typeof window !== 'undefined' && window.localStorage) {
+    localStorage.removeItem('access_token');
+  }
+};
+
 // 发送请求
 function request<T>(
   method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
@@ -152,12 +162,20 @@ export function createApiClient(config: ApiClientConfig) {
 export type ApiClient = ReturnType<typeof createApiClient>;
 
 // 默认API客户端实例
-export const apiClient = createApiClient({
-  baseURL:
-    typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE_URL
-      ? import.meta.env.VITE_API_BASE_URL
-      : '/api',
-});
+// 使用 try-catch 避免 import.meta 在小程序构建时产生 polyfill
+let baseURL = '/api';
+try {
+  if (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_BASE_URL) {
+    baseURL = (import.meta as any).env.VITE_API_BASE_URL;
+  }
+} catch {
+  // 在小程序环境中，import.meta 可能不可用
+}
+
+export const apiClient = createApiClient({ baseURL });
+
+// 兼容旧代码的别名导出
+export const uniClient = apiClient;
 
 // 请求工具函数
 export async function get<T>(url: string, config?: RequestConfig): Promise<T> {

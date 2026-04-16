@@ -115,12 +115,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   Calendar, User, OfficeBuilding, Warning,
   Bell, DocumentChecked, CircleCheck
 } from '@element-plus/icons-vue';
+import * as echarts from 'echarts';
 
 const router = useRouter();
 const timeRange = ref('7d');
@@ -172,8 +173,109 @@ const handleTodo = (item: any) => {
   }
 };
 
+// 图表实例
+let trendChart: echarts.ECharts | null = null;
+
+// 初始化趋势图
+const initTrendChart = () => {
+  if (!trendChartRef.value) return;
+
+  trendChart = echarts.init(trendChartRef.value);
+  const option = {
+    tooltip: {
+      trigger: 'axis',
+    },
+    grid: {
+      left: '3%',
+      right: '4%',
+      bottom: '3%',
+      containLabel: true,
+    },
+    xAxis: {
+      type: 'category',
+      data: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
+      axisLine: {
+        lineStyle: {
+          color: '#30363d',
+        },
+      },
+      axisLabel: {
+        color: '#8b949e',
+      },
+    },
+    yAxis: {
+      type: 'value',
+      axisLine: {
+        lineStyle: {
+          color: '#30363d',
+        },
+      },
+      axisLabel: {
+        color: '#8b949e',
+      },
+      splitLine: {
+        lineStyle: {
+          color: '#21262d',
+        },
+      },
+    },
+    series: [
+      {
+        name: '活动数',
+        type: 'line',
+        smooth: true,
+        data: [12, 15, 8, 20, 14, 22, 18],
+        lineStyle: {
+          color: '#00d4aa',
+          width: 3,
+        },
+        areaStyle: {
+          color: new (echarts as any).graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: 'rgba(0, 212, 170, 0.3)' },
+            { offset: 1, color: 'rgba(0, 212, 170, 0.05)' },
+          ]),
+        },
+        itemStyle: {
+          color: '#00d4aa',
+        },
+      },
+      {
+        name: '参与人数',
+        type: 'line',
+        smooth: true,
+        data: [120, 180, 90, 240, 160, 280, 200],
+        lineStyle: {
+          color: '#58a6ff',
+          width: 3,
+        },
+        areaStyle: {
+          color: new (echarts as any).graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: 'rgba(88, 166, 255, 0.3)' },
+            { offset: 1, color: 'rgba(88, 166, 255, 0.05)' },
+          ]),
+        },
+        itemStyle: {
+          color: '#58a6ff',
+        },
+      },
+    ],
+  };
+  trendChart.setOption(option);
+};
+
+// 监听窗口大小变化
+const handleResize = () => {
+  trendChart?.resize();
+};
+
 onMounted(() => {
-  // TODO: 初始化图表
+  initTrendChart();
+  window.addEventListener('resize', handleResize);
+});
+
+onUnmounted(() => {
+  trendChart?.dispose();
+  window.removeEventListener('resize', handleResize);
 });
 </script>
 

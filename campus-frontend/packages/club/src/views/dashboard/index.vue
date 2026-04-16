@@ -119,11 +119,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { Calendar, User, Star, TrendCharts } from '@element-plus/icons-vue';
 import { formatDateTime, ActivityStatusMap } from '@campus/shared';
 import type { Activity } from '@campus/shared';
+import * as echarts from 'echarts';
+import { activityApi } from '@/api/activity';
 
 const router = useRouter();
 const trendPeriod = ref('month');
@@ -168,8 +170,130 @@ const viewDetail = (id: number) => {
   router.push(`/activities/${id}`);
 };
 
+// 图表实例
+let trendChart: echarts.ECharts | null = null;
+let pieChart: echarts.ECharts | null = null;
+
+// 初始化趋势图
+const initTrendChart = () => {
+  if (!trendChartRef.value) return;
+
+  trendChart = echarts.init(trendChartRef.value);
+  const option = {
+    tooltip: {
+      trigger: 'axis',
+    },
+    xAxis: {
+      type: 'category',
+      data: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
+    },
+    yAxis: {
+      type: 'value',
+    },
+    series: [
+      {
+        name: '活动数',
+        type: 'line',
+        smooth: true,
+        data: [2, 3, 1, 4, 2, 5, 3],
+        areaStyle: {
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: 'rgba(24, 144, 255, 0.3)' },
+            { offset: 1, color: 'rgba(24, 144, 255, 0.05)' },
+          ]),
+        },
+        lineStyle: {
+          color: '#1890ff',
+        },
+        itemStyle: {
+          color: '#1890ff',
+        },
+      },
+    ],
+  };
+  trendChart.setOption(option);
+};
+
+// 初始化饼图
+const initPieChart = () => {
+  if (!pieChartRef.value) return;
+
+  pieChart = echarts.init(pieChartRef.value);
+  const option = {
+    tooltip: {
+      trigger: 'item',
+    },
+    legend: {
+      orient: 'vertical',
+      left: 'left',
+    },
+    series: [
+      {
+        name: '活动类型',
+        type: 'pie',
+        radius: ['40%', '70%'],
+        avoidLabelOverlap: false,
+        itemStyle: {
+          borderRadius: 10,
+          borderColor: '#fff',
+          borderWidth: 2,
+        },
+        label: {
+          show: false,
+          position: 'center',
+        },
+        emphasis: {
+          label: {
+            show: true,
+            fontSize: 20,
+            fontWeight: 'bold',
+          },
+        },
+        labelLine: {
+          show: false,
+        },
+        data: [
+          { value: 12, name: '讲座' },
+          { value: 8, name: '工作坊' },
+          { value: 5, name: '竞赛' },
+          { value: 3, name: '社交' },
+          { value: 2, name: '其他' },
+        ],
+      },
+    ],
+  };
+  pieChart.setOption(option);
+};
+
+// 加载最近活动
+const loadRecentActivities = async () => {
+  try {
+    const response = await activityApi.getList({ page: 0, size: 5 });
+    recentActivities.value = response.content || [];
+  } catch (error) {
+    // 使用默认数据
+  }
+};
+
 onMounted(() => {
-  // TODO: 初始化图表
+  initTrendChart();
+  initPieChart();
+  loadRecentActivities();
+
+  // 窗口大小改变时重绘图表
+  window.addEventListener('resize', () => {
+    trendChart?.resize();
+    pieChart?.resize();
+  });
+});
+
+onUnmounted(() => {
+  trendChart?.dispose();
+  pieChart?.dispose();
+  window.removeEventListener('resize', () => {
+    trendChart?.resize();
+    pieChart?.resize();
+  });
 });
 </script>
 

@@ -22,5 +22,6 @@ export default defineConfig({
   },
   optimizeDeps: {
     include: ['@campus/shared'],
+    exclude: ['axios'],
   },
 });
