@@ -36,8 +36,8 @@ public class ActivityApplicationService {
     private static final String ERR_CLUB_NOT_FOUND = "Club not found with id: %d";
     private static final String ERR_REGISTRATION_NOT_FOUND = "Registration not found for this activity";
     private static final String ERR_ALREADY_REGISTERED = "User already registered for this activity";
-    private static final String ERR_ONLY_DRAFT_EDITABLE = "Only DRAFT activities can be edited. Current status: %s";
-    private static final String ERR_ONLY_DRAFT_DELETABLE = "Only DRAFT activities can be deleted. Current status: %s";
+    private static final String ERR_ONLY_PLANNING_EDITABLE = "Only PLANNING activities can be edited. Current status: %s";
+    private static final String ERR_ONLY_PLANNING_DELETABLE = "Only PLANNING activities can be deleted. Current status: %s";
     private static final String ERR_ONLY_REGISTERED_CAN_CANCEL = "Only REGISTERED participants can cancel. Current status: %s";
     private static final String ERR_CANNOT_REGISTER = "Cannot register for this activity. Status: %s, Capacity: %s, Current: %s";
 
@@ -86,7 +86,7 @@ public class ActivityApplicationService {
 
         Activity activity = activityMapper.toEntity(request);
         activity.setCreatedBy(userId);
-        activity.setStatus(Activity.ActivityStatus.DRAFT);
+        activity.setStatus(Activity.ActivityStatus.PLANNING);
         activity.setApprovalStatus(Activity.ApprovalStatus.NONE);
         activity.setCurrentParticipants(0);
 
@@ -98,8 +98,8 @@ public class ActivityApplicationService {
     public ActivityDto updateActivity(Long id, ActivityCreateRequest request) {
         Activity activity = findActivityById(id);
 
-        if (activity.getStatus() != Activity.ActivityStatus.DRAFT) {
-            throw new BusinessException(String.format(ERR_ONLY_DRAFT_EDITABLE, activity.getStatus()),
+        if (activity.getStatus() != Activity.ActivityStatus.PLANNING) {
+            throw new BusinessException(String.format(ERR_ONLY_PLANNING_EDITABLE, activity.getStatus()),
                     HttpStatus.BAD_REQUEST);
         }
 
@@ -127,8 +127,8 @@ public class ActivityApplicationService {
     public void deleteActivity(Long id) {
         Activity activity = findActivityById(id);
 
-        if (activity.getStatus() != Activity.ActivityStatus.DRAFT) {
-            throw new BusinessException(String.format(ERR_ONLY_DRAFT_DELETABLE, activity.getStatus()),
+        if (activity.getStatus() != Activity.ActivityStatus.PLANNING) {
+            throw new BusinessException(String.format(ERR_ONLY_PLANNING_DELETABLE, activity.getStatus()),
                     HttpStatus.BAD_REQUEST);
         }
 

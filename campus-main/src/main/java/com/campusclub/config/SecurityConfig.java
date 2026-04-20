@@ -38,19 +38,21 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // 公开访问的接口
                 .requestMatchers(
-                    "/api/v1/auth/**",
-                    "/api/public/**",
+                    "/v1/auth/**",
+                    "/public/**",
                     "/actuator/health",
                     "/v3/api-docs/**",
                     "/swagger-ui/**",
                     "/swagger-ui.html"
                 ).permitAll()
                 // GET请求活动列表公开访问
-                .requestMatchers(HttpMethod.GET, "/api/v1/activities").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/v1/activities/{id}").permitAll()
+                .requestMatchers(HttpMethod.GET, "/v1/activities").permitAll()
+                .requestMatchers(HttpMethod.GET, "/v1/activities/{id}").permitAll()
                 // GET请求社团列表公开访问
-                .requestMatchers(HttpMethod.GET, "/api/v1/clubs").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/v1/clubs/{id}").permitAll()
+                .requestMatchers(HttpMethod.GET, "/v1/clubs").permitAll()
+                .requestMatchers(HttpMethod.GET, "/v1/clubs/{id}").permitAll()
+                // 上传接口允许已认证用户访问
+                .requestMatchers(HttpMethod.POST, "/v1/upload", "/upload").authenticated()
                 // 需要认证的接口
                 .anyRequest().authenticated()
             )
@@ -64,6 +66,21 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(List.of(
             "http://localhost:3000",
+            "http://localhost:3001",
+            "http://localhost:3002",
+            "http://localhost:3003",
+            "http://localhost:3004",
+            "http://localhost:3005",
+            "http://localhost:3006",
+            "http://localhost:3007",
+            "http://localhost:3008",
+            "http://localhost:3009",
+            "http://localhost:3010",
+            "http://localhost:3011",
+            "http://localhost:3012",
+            "http://localhost:3013",
+            "http://localhost:3014",
+            "http://localhost:3015",
             "http://localhost:5173",
             "http://localhost:8081"
         ));

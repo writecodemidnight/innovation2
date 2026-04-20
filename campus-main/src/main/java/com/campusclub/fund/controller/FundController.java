@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.*;
  * 资金管理控制器
  */
 @RestController
-@RequestMapping("/api/v1/funds")
+@RequestMapping("/v1/funds")
 @RequiredArgsConstructor
 @Tag(name = "资金管理", description = "资金申请和审批相关接口")
 public class FundController {

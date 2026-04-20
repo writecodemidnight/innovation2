@@ -43,4 +43,41 @@ public interface ResourceBookingRepository extends JpaRepository<ResourceBooking
      * 查询用户的预约数量
      */
     long countByApplicantIdAndStatusAndDeletedFalse(Long applicantId, String status);
+
+    /**
+     * 计算用户在时间段内的资源预约数
+     */
+    @Query("SELECT COUNT(b) FROM ResourceBooking b " +
+           "WHERE b.applicantId = :applicantId AND b.deleted = false " +
+           "AND b.status IN ('APPROVED', 'COMPLETED') " +
+           "AND b.startTime >= :start AND b.endTime <= :end")
+    Long countApprovedBookingsByApplicantAndTimeRange(@Param("applicantId") Long applicantId,
+                                                       @Param("start") LocalDateTime start,
+                                                       @Param("end") LocalDateTime end);
+
+    /**
+     * 计算社团在时间段内的资源预约数（通过activity关联）
+     */
+    @Query("SELECT COUNT(b) FROM ResourceBooking b JOIN Activity a ON b.activityId = a.id " +
+           "WHERE a.clubId = :clubId AND b.deleted = false " +
+           "AND b.status IN ('APPROVED', 'COMPLETED') " +
+           "AND b.startTime >= :start AND b.endTime <= :end")
+    Long countApprovedBookingsByClubAndTimeRange(@Param("clubId") Long clubId,
+                                                  @Param("start") LocalDateTime start,
+                                                  @Param("end") LocalDateTime end);
+
+    /**
+     * 根据状态统计预约数量
+     */
+    long countByStatus(String status);
+
+    /**
+     * 统计时间段内的预约数量
+     */
+    long countByStartTimeBetween(LocalDateTime start, LocalDateTime end);
+
+    /**
+     * 根据状态和删除标志查询预约列表
+     */
+    List<ResourceBooking> findByStatusAndDeletedFalse(String status);
 }

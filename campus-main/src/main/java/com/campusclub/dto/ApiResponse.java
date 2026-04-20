@@ -58,6 +58,10 @@ public class ApiResponse<T> {
         return response;
     }
 
+    public static <T> ApiResponse<T> error(String message) {
+        return error("ERROR", message, null);
+    }
+
     public static <T> ApiResponse<T> error(String code, String message) {
         ApiResponse<T> response = new ApiResponse<>();
         response.setCode(code);

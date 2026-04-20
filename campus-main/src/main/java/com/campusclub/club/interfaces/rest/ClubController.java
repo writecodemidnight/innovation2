@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/clubs")
+@RequestMapping("/v1/clubs")
 @RequiredArgsConstructor
 @Tag(name = "社团", description = "社团管理相关接口")
 public class ClubController {

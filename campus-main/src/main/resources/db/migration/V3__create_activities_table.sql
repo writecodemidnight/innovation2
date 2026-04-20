@@ -3,7 +3,8 @@ CREATE TABLE IF NOT EXISTS activities (
     title VARCHAR(200) NOT NULL,
     description TEXT,
     activity_type VARCHAR(50) NOT NULL,
-    status VARCHAR(20) DEFAULT 'DRAFT',
+    status VARCHAR(20) DEFAULT 'PLANNING',
+    CHECK (status IN ('PLANNING', 'PENDING_APPROVAL', 'APPROVED', 'REJECTED', 'REGISTERING', 'ONGOING', 'COMPLETED', 'CANCELLED')),
     start_time TIMESTAMP NOT NULL,
     end_time TIMESTAMP NOT NULL,
     location VARCHAR(200),
@@ -29,6 +30,9 @@ CREATE TABLE IF NOT EXISTS activity_participants (
     status VARCHAR(20) DEFAULT 'REGISTERED',
     registered_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     checked_in_at TIMESTAMP,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP,
+    deleted BOOLEAN DEFAULT FALSE,
     UNIQUE(activity_id, user_id)
 );
 

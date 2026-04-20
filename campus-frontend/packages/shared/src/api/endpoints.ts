@@ -3,9 +3,9 @@
  * 集中管理所有API路径
  */
 
-const API_BASE_URL = typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE_URL
-  ? import.meta.env.VITE_API_BASE_URL
-  : '/api';
+// 使用硬编码 baseURL 避免 import.meta 导致小程序构建问题
+// 在 vite.config.ts 中配置 proxy 即可
+const API_BASE_URL = '/api/v1';
 
 export const Endpoints = {
   // 认证相关
@@ -85,7 +85,7 @@ export const Endpoints = {
   // 仪表盘/统计相关
   dashboard: {
     overview: `${API_BASE_URL}/dashboard/overview`,
-    statistics: `${API_BASE_URL}/dashboard/statistics`,
+    statistics: `${API_BASE_URL}/dashboard/stats`,
     trends: `${API_BASE_URL}/dashboard/trends`,
     alerts: `${API_BASE_URL}/dashboard/alerts`,
     realtime: `${API_BASE_URL}/dashboard/realtime`,
@@ -97,6 +97,47 @@ export const Endpoints = {
     history: `${API_BASE_URL}/approval/history`,
     approve: (id: number) => `${API_BASE_URL}/approval/${id}/approve`,
     reject: (id: number) => `${API_BASE_URL}/approval/${id}/reject`,
+  },
+
+  // 管理端 - Dashboard
+  adminDashboard: {
+    stats: `${API_BASE_URL}/admin/dashboard/stats`,
+    activityTrends: `${API_BASE_URL}/admin/dashboard/activity-trends`,
+    clubRankings: `${API_BASE_URL}/admin/dashboard/club-rankings`,
+    resourceUsage: `${API_BASE_URL}/admin/dashboard/resource-usage`,
+    pendingTasks: `${API_BASE_URL}/admin/dashboard/pending-tasks`,
+  },
+
+  // 管理端 - 审批
+  adminApprovals: {
+    counts: `${API_BASE_URL}/admin/approvals/counts`,
+    pendingActivities: `${API_BASE_URL}/admin/approvals/activities/pending`,
+    approveActivity: (id: number) => `${API_BASE_URL}/admin/approvals/activities/${id}/approve`,
+    rejectActivity: (id: number) => `${API_BASE_URL}/admin/approvals/activities/${id}/reject`,
+    pendingResourceBookings: `${API_BASE_URL}/admin/approvals/resource-bookings/pending`,
+    approveResourceBooking: (id: number) => `${API_BASE_URL}/admin/approvals/resource-bookings/${id}/approve`,
+    rejectResourceBooking: (id: number) => `${API_BASE_URL}/admin/approvals/resource-bookings/${id}/reject`,
+    pendingFundApplications: `${API_BASE_URL}/funds/applications/pending`,
+    approveFundApplication: (id: number) => `${API_BASE_URL}/funds/applications/${id}/approve`,
+    rejectFundApplication: (id: number) => `${API_BASE_URL}/funds/applications/${id}/reject`,
+  },
+
+  // 管理端 - 审批历史
+  adminHistory: {
+    counts: `${API_BASE_URL}/admin/history/counts`,
+    activities: `${API_BASE_URL}/admin/history/activities`,
+    resourceBookings: `${API_BASE_URL}/admin/history/resource-bookings`,
+    fundApplications: `${API_BASE_URL}/admin/history/fund-applications`,
+  },
+
+  // 管理端 - 资源池管理
+  adminResources: {
+    list: `${API_BASE_URL}/admin/resources`,
+    detail: (id: number) => `${API_BASE_URL}/admin/resources/${id}`,
+    create: `${API_BASE_URL}/admin/resources`,
+    update: (id: number) => `${API_BASE_URL}/admin/resources/${id}`,
+    delete: (id: number) => `${API_BASE_URL}/admin/resources/${id}`,
+    stats: `${API_BASE_URL}/admin/resources/stats`,
   },
 
   // AI/智能相关
@@ -112,6 +153,29 @@ export const Endpoints = {
     image: `${API_BASE_URL}/upload/image`,
     file: `${API_BASE_URL}/upload/file`,
     avatar: `${API_BASE_URL}/upload/avatar`,
+  },
+
+  // 资金申请相关
+  funds: {
+    applications: `${API_BASE_URL}/funds/applications`,
+    myApplications: `${API_BASE_URL}/funds/applications/my`,
+    clubApplications: `${API_BASE_URL}/funds/applications/club`,
+    applicationDetail: (id: number) => `${API_BASE_URL}/funds/applications/${id}`,
+    cancel: (id: number) => `${API_BASE_URL}/funds/applications/${id}/cancel`,
+    approve: (id: number) => `${API_BASE_URL}/funds/applications/${id}/approve`,
+    reject: (id: number) => `${API_BASE_URL}/funds/applications/${id}/reject`,
+    pending: `${API_BASE_URL}/funds/applications/pending`,
+  },
+
+  // 反馈评价相关
+  feedback: {
+    list: `${API_BASE_URL}/feedback`,
+    detail: (id: number) => `${API_BASE_URL}/feedback/${id}`,
+    create: `${API_BASE_URL}/feedback`,
+    update: (id: number) => `${API_BASE_URL}/feedback/${id}`,
+    delete: (id: number) => `${API_BASE_URL}/feedback/${id}`,
+    byActivity: (activityId: number) => `${API_BASE_URL}/feedback/activity/${activityId}`,
+    stats: (activityId: number) => `${API_BASE_URL}/feedback/activity/${activityId}/stats`,
   },
 } as const;
 

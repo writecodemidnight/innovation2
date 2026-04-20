@@ -1,0 +1,30 @@
+/**
+ * 仪表盘统计类型定义
+ */
+
+/** 社团仪表盘统计数据 */
+export interface ClubDashboardStats {
+  /** 本月活动数 */
+  monthlyActivities: number;
+
+  /** 本月活动增长率 */
+  monthlyGrowthRate: number;
+
+  /** 参与人次 */
+  totalParticipants: number;
+
+  /** 平均评分 */
+  averageRating: number;
+
+  /** 资源利用率 */
+  resourceUtilizationRate: number;
+
+  /** 待审批申请数 */
+  pendingApprovals: number;
+
+  /** 进行中活动数 */
+  ongoingActivities: number;
+
+  /** 已结束活动数 */
+  completedActivities: number;
+}

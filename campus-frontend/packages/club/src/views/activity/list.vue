@@ -21,10 +21,10 @@
     <!-- 筛选栏 -->
     <div class="filter-bar">
       <el-radio-group v-model="filterStatus" size="small" @change="handleFilter">
-        <el-radio-button label="">全部</el-radio-button>
-        <el-radio-button :label="ActivityStatus.REGISTERING">报名中</el-radio-button>
-        <el-radio-button :label="ActivityStatus.ONGOING">进行中</el-radio-button>
-        <el-radio-button :label="ActivityStatus.COMPLETED">已结束</el-radio-button>
+        <el-radio-button value="">全部</el-radio-button>
+        <el-radio-button :value="ActivityStatus.REGISTERING">报名中</el-radio-button>
+        <el-radio-button :value="ActivityStatus.ONGOING">进行中</el-radio-button>
+        <el-radio-button :value="ActivityStatus.COMPLETED">已结束</el-radio-button>
       </el-radio-group>
     </div>
 
@@ -140,12 +140,14 @@ const activities = ref<Partial<Activity>[]>([]);
 async function loadActivities() {
   loading.value = true;
   try {
-    const params = {
+    const params: any = {
       page: page.value - 1, // 后端分页从0开始
       size: pageSize.value,
       keyword: searchQuery.value || undefined,
-      status: filterStatus.value || undefined,
     };
+    if (filterStatus.value) {
+      params.status = filterStatus.value as ActivityStatus;
+    }
     const response = await activityApi.getList(params);
     activities.value = response.content;
     total.value = response.totalElements;

@@ -1,12 +1,15 @@
 from fastapi import APIRouter
 
+from .algorithms import router as algorithms_router
+
 # 创建API v1路由器
 api_v1_router = APIRouter()
 
-# 在这里导入各个子路由
-# from . import recommend, evaluation, nlp, prediction, optimization, mining, cv
+# 注册算法路由
+api_v1_router.include_router(algorithms_router, tags=["v1-算法服务"])
 
-# 注册子路由（将在后续任务实现）
+# 其他路由将在后续任务实现
+# from . import recommend, evaluation, nlp, prediction, optimization, mining, cv
 # api_v1_router.include_router(recommend.router, prefix="/recommend", tags=["推荐"])
 # api_v1_router.include_router(evaluation.router, prefix="/evaluation", tags=["评估"])
 # api_v1_router.include_router(nlp.router, prefix="/nlp", tags=["自然语言处理"])

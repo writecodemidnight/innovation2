@@ -3,6 +3,8 @@ package com.campusclub.resource.domain.entity;
 import com.campusclub.common.model.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 
@@ -48,6 +50,7 @@ public class Resource extends BaseEntity {
     private Long managerId;
 
     @Column(columnDefinition = "jsonb")
+    @JdbcTypeCode(SqlTypes.JSON)
     private String constraints;
 
     @Column(length = 20)

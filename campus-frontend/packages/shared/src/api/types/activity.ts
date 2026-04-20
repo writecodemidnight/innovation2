@@ -41,18 +41,21 @@ export interface Activity {
   description: string;
   clubId: number;
   clubName?: string;
-  organizerId: number;
+  createdBy?: number;
+  organizerId?: number;
   organizerName?: string;
   activityType: ActivityType;
   startTime: string;
   endTime: string;
   location: string;
-  maxParticipants: number;
+  capacity?: number;
+  maxParticipants?: number;
   currentParticipants: number;
   status: ActivityStatus;
   coverImageUrl: string;
   budget?: number;
-  requiresResources: boolean;
+  requiredResources?: string;
+  requiresResources?: boolean;
   createdAt: string;
   updatedAt: string;
 }

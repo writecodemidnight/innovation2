@@ -9,10 +9,12 @@ import type { ApiResponse } from './types';
 // 内存中缓存token，避免每次请求都读取localStorage
 let cachedToken: string | null = null;
 
-// 从localStorage读取token
+// 从localStorage读取token（兼容多个key：admin_token, access_token）
 const getToken = (): string | null => {
   if (cachedToken === null) {
-    cachedToken = localStorage.getItem('access_token');
+    cachedToken = localStorage.getItem('access_token')
+      || localStorage.getItem('admin_token')
+      || localStorage.getItem('club_token');
   }
   return cachedToken;
 };
@@ -22,13 +24,29 @@ export const clearTokenCache = (): void => {
   cachedToken = null;
 };
 
-// 创建axios实例
-const axiosClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
-  timeout: 30000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+// 创建axios实例 - 使用函数延迟初始化避免 import.meta 在构建时被处理
+const getAxiosClient = () => {
+  // @ts-ignore - Vite 会处理这个
+  // 注意：endpoints.ts 中已包含完整路径 '/api/v1'，这里 baseURL 设为空字符串避免重复
+  const baseURL = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE_URL) || '';
+  return axios.create({
+    baseURL,
+    timeout: 30000,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+};
+
+// 延迟初始化 axiosClient
+let _axiosClient: ReturnType<typeof getAxiosClient> | null = null;
+const axiosClient = new Proxy({} as ReturnType<typeof getAxiosClient>, {
+  get(_target, prop) {
+    if (!_axiosClient) {
+      _axiosClient = getAxiosClient();
+    }
+    return _axiosClient[prop as keyof typeof _axiosClient];
+  }
 });
 
 // 请求拦截器：添加Authorization头
@@ -51,11 +69,19 @@ axiosClient.interceptors.response.use(
       // 业务错误
       const error = new Error(data.message || '请求失败');
       (error as any).code = data.code;
+      (error as any).response = { data };
       return Promise.reject(error);
     }
     return data.data;
   },
   (error) => {
+    // 如果响应体包含业务错误码，优先使用响应体的错误信息
+    if (error.response?.data?.code && error.response?.data?.code !== 'SUCCESS') {
+      const businessError = new Error(error.response.data.message || '请求失败');
+      (businessError as any).code = error.response.data.code;
+      (businessError as any).response = error.response;
+      return Promise.reject(businessError);
+    }
     if (error.response?.status === 401) {
       clearTokenCache();
       localStorage.removeItem('access_token');

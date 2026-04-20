@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/activities")
+@RequestMapping("/v1/activities")
 @RequiredArgsConstructor
 @Tag(name = "活动", description = "活动管理相关接口")
 public class ActivityController {

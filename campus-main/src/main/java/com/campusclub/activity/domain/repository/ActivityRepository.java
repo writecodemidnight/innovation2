@@ -58,4 +58,40 @@ public interface ActivityRepository extends JpaRepository<Activity, Long> {
            "WHERE a.id = :id AND a.currentParticipants > 0")
     @Modifying
     int decrementParticipants(@Param("id") Long id);
+
+    // ========== Dashboard Statistics Methods ==========
+
+    @Query("SELECT COUNT(a) FROM Activity a WHERE a.clubId = :clubId AND a.startTime BETWEEN :start AND :end")
+    Integer countByClubIdAndStartTimeBetween(@Param("clubId") Long clubId,
+                                               @Param("start") LocalDateTime start,
+                                               @Param("end") LocalDateTime end);
+
+    @Query("SELECT COALESCE(SUM(a.currentParticipants), 0) FROM Activity a WHERE a.clubId = :clubId")
+    Integer sumParticipantsByClubId(@Param("clubId") Long clubId);
+
+    // Note: Activity entity doesn't have averageRating field
+    // This is a placeholder - actual rating should come from evaluation/feedback table
+    @Query("SELECT 4.5 FROM Activity a WHERE a.clubId = :clubId")
+    Double getAverageRatingByClubId(@Param("clubId") Long clubId);
+
+    @Query("SELECT COUNT(a) FROM Activity a WHERE a.clubId = :clubId AND a.status = 'PENDING_APPROVAL'")
+    Integer countPendingByClubId(@Param("clubId") Long clubId);
+
+    @Query("SELECT COUNT(a) FROM Activity a WHERE a.clubId = :clubId AND a.status = 'ONGOING' " +
+           "AND a.startTime <= :now AND a.endTime >= :now")
+    Integer countOngoingByClubId(@Param("clubId") Long clubId, @Param("now") LocalDateTime now);
+
+    @Query("SELECT COUNT(a) FROM Activity a WHERE a.clubId = :clubId AND a.status = 'COMPLETED'")
+    Integer countCompletedByClubId(@Param("clubId") Long clubId);
+
+    // ========== Admin Dashboard Methods ==========
+
+    @Query("SELECT COALESCE(SUM(a.currentParticipants), 0) FROM Activity a")
+    Integer sumAllParticipants();
+
+    int countByStatus(Activity.ActivityStatus status);
+
+    int countByStartTimeBetween(LocalDateTime start, LocalDateTime end);
+
+    int countByClubId(Long clubId);
 }

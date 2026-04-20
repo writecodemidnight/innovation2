@@ -74,6 +74,18 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/report/feedback.vue'),
         meta: { title: '反馈汇总', icon: 'ChatLineRound' },
       },
+      {
+        path: 'funds',
+        name: 'FundList',
+        component: () => import('@/views/fund/list.vue'),
+        meta: { title: '资金管理', icon: 'Money' },
+      },
+      {
+        path: 'funds/apply',
+        name: 'FundApply',
+        component: () => import('@/views/fund/apply.vue'),
+        meta: { title: '申请资金', hidden: true },
+      },
     ],
   },
   {

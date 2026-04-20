@@ -16,7 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/internal/algorithms")
+@RequestMapping("/internal/algorithms")
 @Tag(name = "算法服务", description = "内部算法接口，供Java服务调用")
 @RequiredArgsConstructor
 @Slf4j

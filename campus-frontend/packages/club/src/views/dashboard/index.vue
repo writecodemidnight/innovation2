@@ -3,45 +3,45 @@
     <!-- 统计卡片 -->
     <el-row :gutter="24" class="stat-cards">
       <el-col :xs="24" :sm="12" :lg="6">
-        <el-card class="stat-card">
+        <el-card class="stat-card" v-loading="statsLoading">
           <div class="stat-icon" style="background: #e6f7ff;">
             <el-icon size="32" color="#1890ff"><Calendar /></el-icon>
           </div>
           <div class="stat-info">
-            <div class="stat-value">12</div>
+            <div class="stat-value">{{ stats.monthlyActivities }}</div>
             <div class="stat-label">本月活动</div>
           </div>
         </el-card>
       </el-col>
       <el-col :xs="24" :sm="12" :lg="6">
-        <el-card class="stat-card">
+        <el-card class="stat-card" v-loading="statsLoading">
           <div class="stat-icon" style="background: #f6ffed;">
             <el-icon size="32" color="#52c41a"><User /></el-icon>
           </div>
           <div class="stat-info">
-            <div class="stat-value">486</div>
+            <div class="stat-value">{{ stats.totalParticipants }}</div>
             <div class="stat-label">参与人次</div>
           </div>
         </el-card>
       </el-col>
       <el-col :xs="24" :sm="12" :lg="6">
-        <el-card class="stat-card">
+        <el-card class="stat-card" v-loading="statsLoading">
           <div class="stat-icon" style="background: #fff7e6;">
             <el-icon size="32" color="#fa8c16"><Star /></el-icon>
           </div>
           <div class="stat-info">
-            <div class="stat-value">4.8</div>
+            <div class="stat-value">{{ stats.averageRating.toFixed(1) }}</div>
             <div class="stat-label">平均评分</div>
           </div>
         </el-card>
       </el-col>
       <el-col :xs="24" :sm="12" :lg="6">
-        <el-card class="stat-card">
+        <el-card class="stat-card" v-loading="statsLoading">
           <div class="stat-icon" style="background: #f9f0ff;">
             <el-icon size="32" color="#722ed1"><TrendCharts /></el-icon>
           </div>
           <div class="stat-info">
-            <div class="stat-value">85%</div>
+            <div class="stat-value">{{ stats.resourceUtilizationRate.toFixed(0) }}%</div>
             <div class="stat-label">资源利用率</div>
           </div>
         </el-card>
@@ -56,9 +56,9 @@
             <div class="card-header">
               <span>活动趋势</span>
               <el-radio-group v-model="trendPeriod" size="small">
-                <el-radio-button label="week">本周</el-radio-button>
-                <el-radio-button label="month">本月</el-radio-button>
-                <el-radio-button label="year">本年</el-radio-button>
+                <el-radio-button value="week">本周</el-radio-button>
+                <el-radio-button value="month">本月</el-radio-button>
+                <el-radio-button value="year">本年</el-radio-button>
               </el-radio-group>
             </div>
           </template>
@@ -122,35 +122,33 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { Calendar, User, Star, TrendCharts } from '@element-plus/icons-vue';
-import { formatDateTime, ActivityStatusMap } from '@campus/shared';
-import type { Activity } from '@campus/shared';
+import { formatDateTime, ActivityStatusMap, ActivityStatus } from '@campus/shared';
+import type { Activity, ClubDashboardStats } from '@campus/shared';
 import * as echarts from 'echarts';
 import { activityApi } from '@/api/activity';
+import { dashboardApi } from '@/api/dashboard';
+import { ElMessage } from 'element-plus';
 
 const router = useRouter();
 const trendPeriod = ref('month');
 const trendChartRef = ref<HTMLElement>();
 const pieChartRef = ref<HTMLElement>();
+const statsLoading = ref(false);
+
+// 统计数据
+const stats = ref<ClubDashboardStats>({
+  monthlyActivities: 0,
+  monthlyGrowthRate: 0,
+  totalParticipants: 0,
+  averageRating: 0,
+  resourceUtilizationRate: 0,
+  pendingApprovals: 0,
+  ongoingActivities: 0,
+  completedActivities: 0,
+});
 
 // 最近活动数据
-const recentActivities = ref<Partial<Activity>[]>([
-  {
-    id: 1,
-    title: '科技创新讲座',
-    startTime: new Date(Date.now() + 86400000).toISOString(),
-    status: 'REGISTERING' as any,
-    currentParticipants: 45,
-    maxParticipants: 100,
-  },
-  {
-    id: 2,
-    title: '编程工作坊',
-    startTime: new Date(Date.now() + 172800000).toISOString(),
-    status: 'PENDING_APPROVAL' as any,
-    currentParticipants: 20,
-    maxParticipants: 50,
-  },
-]);
+const recentActivities = ref<Partial<Activity>[]>([]);
 
 const getStatusType = (status: string) => {
   const map: Record<string, string> = {
@@ -163,11 +161,24 @@ const getStatusType = (status: string) => {
 };
 
 const getStatusLabel = (status: string) => {
-  return ActivityStatusMap[status as any]?.label || status;
+  return ActivityStatusMap[status as ActivityStatus]?.label || status;
 };
 
 const viewDetail = (id: number) => {
   router.push(`/activities/${id}`);
+};
+
+// 加载统计数据
+const loadStats = async () => {
+  statsLoading.value = true;
+  try {
+    const response = await dashboardApi.getStats();
+    stats.value = response;
+  } catch (error: any) {
+    ElMessage.error(error.message || '获取统计数据失败');
+  } finally {
+    statsLoading.value = false;
+  }
 };
 
 // 图表实例
@@ -278,6 +289,7 @@ const loadRecentActivities = async () => {
 onMounted(() => {
   initTrendChart();
   initPieChart();
+  loadStats();
   loadRecentActivities();
 
   // 窗口大小改变时重绘图表

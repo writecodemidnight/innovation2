@@ -1,7 +1,7 @@
-# application-dev.yml
+# application-dev.yml - 开发环境配置 (PostgreSQL)
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/campus_club_dev
+    url: jdbc:postgresql://localhost:5432/campus_club
     username: campus_user
     password: dev_password_123
     driver-class-name: org.postgresql.Driver
@@ -25,18 +25,19 @@ spring:
         order_updates: true
     show-sql: true
 
-  data:
-    redis:
-      host: localhost
-      port: 6379
-      password: dev_redis_password_456
-      timeout: 5000ms
-      lettuce:
-        pool:
-          max-active: 8
-          max-idle: 8
-          min-idle: 0
-          max-wait: -1ms
+  # Redis 暂时禁用（可选）
+  # data:
+  #   redis:
+  #     host: localhost
+  #     port: 6379
+  #     password: dev_redis_password_456
+  #     timeout: 5000ms
+  #     lettuce:
+  #       pool:
+  #         max-active: 8
+  #         max-idle: 8
+  #         min-idle: 0
+  #         max-wait: -1ms
 
   flyway:
     enabled: true
@@ -47,3 +48,21 @@ jwt:
   secret: dev_jwt_secret_key_change_in_production_789
   expiration: 7200000 # 2小时
   refresh-expiration: 604800000 # 7天
+
+# 算法服务配置
+algorithm:
+  service:
+    url: http://localhost:8000
+  timeout:
+    seconds: 30
+  retry:
+    count: 3
+  cache:
+    ttl:
+      standard: 600
+      extended: 3600
+      medium: 1800
+
+logging:
+  level:
+    com.campusclub: DEBUG

@@ -57,4 +57,14 @@ public interface FundApplicationRepository extends JpaRepository<FundApplication
      * 查询某活动的资金申请
      */
     List<FundApplication> findByActivityId(Long activityId);
+
+    /**
+     * 根据状态统计数量
+     */
+    long countByStatus(FundApplication.FundStatus status);
+
+    /**
+     * 查询非指定状态的资金申请
+     */
+    List<FundApplication> findByStatusNot(FundApplication.FundStatus status);
 }

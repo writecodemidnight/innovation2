@@ -3,6 +3,8 @@ package com.campusclub.activity.domain.entity;
 import com.campusclub.common.model.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -28,7 +30,7 @@ public class Activity extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
-    private ActivityStatus status = ActivityStatus.DRAFT;
+    private ActivityStatus status = ActivityStatus.PLANNING;
 
     @Column(name = "start_time", nullable = false)
     private LocalDateTime startTime;
@@ -58,6 +60,7 @@ public class Activity extends BaseEntity {
     private BigDecimal budget;
 
     @Column(name = "required_resources", columnDefinition = "jsonb")
+    @JdbcTypeCode(SqlTypes.JSON)
     private String requiredResources;
 
     @Enumerated(EnumType.STRING)
@@ -68,33 +71,33 @@ public class Activity extends BaseEntity {
     private String approvalComment;
 
     /**
-     * Submit activity for approval: DRAFT -> PENDING
+     * Submit activity for approval: PLANNING -> PENDING_APPROVAL
      */
     public void submitForApproval() {
-        if (this.status != ActivityStatus.DRAFT) {
-            throw new IllegalStateException("Only DRAFT activities can be submitted for approval. Current status: " + this.status);
+        if (this.status != ActivityStatus.PLANNING) {
+            throw new IllegalStateException("Only PLANNING activities can be submitted for approval. Current status: " + this.status);
         }
-        this.status = ActivityStatus.PENDING;
+        this.status = ActivityStatus.PENDING_APPROVAL;
         this.approvalStatus = ApprovalStatus.PENDING;
     }
 
     /**
-     * Approve activity: PENDING -> APPROVED
+     * Approve activity: PENDING_APPROVAL -> APPROVED
      */
     public void approve() {
-        if (this.status != ActivityStatus.PENDING) {
-            throw new IllegalStateException("Only PENDING activities can be approved. Current status: " + this.status);
+        if (this.status != ActivityStatus.PENDING_APPROVAL) {
+            throw new IllegalStateException("Only PENDING_APPROVAL activities can be approved. Current status: " + this.status);
         }
         this.status = ActivityStatus.APPROVED;
         this.approvalStatus = ApprovalStatus.APPROVED;
     }
 
     /**
-     * Reject activity: PENDING -> REJECTED
+     * Reject activity: PENDING_APPROVAL -> REJECTED
      */
     public void reject(String comment) {
-        if (this.status != ActivityStatus.PENDING) {
-            throw new IllegalStateException("Only PENDING activities can be rejected. Current status: " + this.status);
+        if (this.status != ActivityStatus.PENDING_APPROVAL) {
+            throw new IllegalStateException("Only PENDING_APPROVAL activities can be rejected. Current status: " + this.status);
         }
         this.status = ActivityStatus.REJECTED;
         this.approvalStatus = ApprovalStatus.REJECTED;
@@ -159,7 +162,7 @@ public class Activity extends BaseEntity {
     }
 
     public enum ActivityStatus {
-        DRAFT, PENDING, APPROVED, REJECTED, REGISTERING, ONGOING, COMPLETED, CANCELLED
+        PLANNING, PENDING_APPROVAL, APPROVED, REJECTED, REGISTERING, ONGOING, COMPLETED, CANCELLED
     }
 
     public enum ApprovalStatus {

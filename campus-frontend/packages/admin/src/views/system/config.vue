@@ -96,6 +96,7 @@
 <script setup lang="ts">
 import { reactive } from 'vue';
 import { Plus } from '@element-plus/icons-vue';
+import { ElMessage } from 'element-plus';
 
 const basicConfig = reactive({
   systemName: '校园社团活动评估系统',

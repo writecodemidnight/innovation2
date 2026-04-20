@@ -79,12 +79,12 @@ const handleLogin = async () => {
   const valid = await formRef.value?.validate().catch(() => false);
   if (!valid) return;
 
-  const success = await userStore.login(form);
-  if (success) {
+  try {
+    await userStore.login(form);
     ElMessage.success('登录成功');
     router.push('/');
-  } else {
-    ElMessage.error('登录失败，请检查用户名和密码');
+  } catch (error: any) {
+    ElMessage.error(error.message || '登录失败，请检查用户名和密码');
   }
 };
 </script>

@@ -15,6 +15,10 @@
       "types": "./dist/api/index.d.ts",
       "import": "./dist/api/index.js"
     },
+    "./api/client.axios": {
+      "types": "./dist/api/client.axios.d.ts",
+      "import": "./dist/api/client.axios.js"
+    },
     "./constants": {
       "types": "./dist/constants/index.d.ts",
       "import": "./dist/constants/index.js"

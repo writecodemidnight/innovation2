@@ -151,12 +151,46 @@ const form = reactive({
 
 // 表单验证规则
 const rules: FormRules = {
-  title: [{ required: true, message: '请输入活动标题', trigger: 'blur' }],
+  title: [
+    { required: true, message: '请输入活动标题', trigger: 'blur' },
+    { min: 5, max: 100, message: '标题长度应为5-100个字符', trigger: 'blur' }
+  ],
   activityType: [{ required: true, message: '请选择活动类型', trigger: 'change' }],
-  timeRange: [{ required: true, message: '请选择活动时间', trigger: 'change' }],
-  location: [{ required: true, message: '请输入活动地点', trigger: 'blur' }],
-  maxParticipants: [{ required: true, message: '请设置人数限制', trigger: 'blur' }],
-  description: [{ required: true, message: '请输入活动描述', trigger: 'blur' }],
+  timeRange: [
+    { required: true, message: '请选择活动时间', trigger: 'change' },
+    {
+      validator: (rule: any, value: string[], callback: Function) => {
+        if (value && value.length === 2) {
+          const startTime = new Date(value[0]);
+          const endTime = new Date(value[1]);
+          const now = new Date();
+
+          if (startTime >= endTime) {
+            callback(new Error('开始时间必须早于结束时间'));
+          } else if (startTime < now) {
+            callback(new Error('开始时间不能早于当前时间'));
+          } else {
+            callback();
+          }
+        } else {
+          callback(new Error('请选择完整的活动时间'));
+        }
+      },
+      trigger: 'change'
+    }
+  ],
+  location: [
+    { required: true, message: '请输入活动地点', trigger: 'blur' },
+    { min: 3, max: 100, message: '地点长度应为3-100个字符', trigger: 'blur' }
+  ],
+  maxParticipants: [
+    { required: true, message: '请设置人数限制', trigger: 'blur' },
+    { type: 'number', min: 1, max: 1000, message: '人数应在1-1000之间', trigger: 'blur' }
+  ],
+  description: [
+    { required: true, message: '请输入活动描述', trigger: 'blur' },
+    { min: 20, max: 2000, message: '描述长度应为20-2000个字符', trigger: 'blur' }
+  ],
 };
 
 // 上传相关

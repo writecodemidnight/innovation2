@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import type { User, UserRole } from '@campus/shared';
-import { UserRoleMap, Endpoints } from '@campus/shared';
+import type { User } from '@campus/shared';
+import { UserRole, UserRoleMap, Endpoints } from '@campus/shared';
 import { apiClient } from '@campus/shared';
 import { clearTokenCache } from '@campus/shared/api';
 
@@ -26,6 +26,9 @@ export const useUserStore = defineStore('user', () => {
   const login = async (credentials: { username: string; password: string }) => {
     loading.value = true;
     try {
+      // 登录前清除旧token，避免请求时带上旧token导致403
+      logout();
+
       // 调用后端登录API
       const response = await apiClient.post<{ accessToken: string; user: User }>(
         Endpoints.auth.login,
@@ -35,6 +38,7 @@ export const useUserStore = defineStore('user', () => {
       token.value = response.accessToken;
       userInfo.value = response.user;
       localStorage.setItem('admin_token', response.accessToken);
+      localStorage.setItem('access_token', response.accessToken); // 兼容 apiClient
 
       return true;
     } catch (error: any) {
@@ -63,6 +67,7 @@ export const useUserStore = defineStore('user', () => {
       updatedAt: new Date().toISOString(),
     };
     localStorage.setItem('admin_token', token.value);
+    localStorage.setItem('access_token', token.value); // 兼容 apiClient
     return true;
   };
 
@@ -70,6 +75,7 @@ export const useUserStore = defineStore('user', () => {
     token.value = '';
     userInfo.value = null;
     localStorage.removeItem('admin_token');
+    localStorage.removeItem('access_token');
     clearTokenCache();
   };
 

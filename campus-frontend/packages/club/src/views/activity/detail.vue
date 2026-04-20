@@ -90,7 +90,7 @@
 import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { formatDateTime, ActivityStatusMap, ActivityTypeMap, ActivityStatus } from '@campus/shared';
-import { activityApi, type ActivityParticipantDto } from '@/api/activity';
+import { activityApi } from '@/api/activity';
 import type { Activity } from '@campus/shared';
 import { ElMessage, ElMessageBox } from 'element-plus';
 
@@ -98,7 +98,7 @@ const route = useRoute();
 const router = useRouter();
 
 const activity = ref<Activity | null>(null);
-const participants = ref<ActivityParticipantDto[]>([]);
+const participants = ref<any[]>([]);
 const loading = ref(false);
 const participantsLoading = ref(false);
 
@@ -135,7 +135,7 @@ async function loadActivityDetail() {
   try {
     // 并行加载活动详情和参与者列表
     const [activityRes, participantsRes] = await Promise.all([
-      activityApi.getById(id),
+      activityApi.getDetail(id),
       activityApi.getParticipants(id),
     ]);
     activity.value = activityRes;

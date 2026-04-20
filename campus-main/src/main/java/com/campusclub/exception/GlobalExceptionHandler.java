@@ -1,5 +1,6 @@
 package com.campusclub.exception;
 
+import com.campusclub.common.exception.BusinessException;
 import com.campusclub.dto.ApiResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -29,6 +30,21 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
                 .body(ApiResponse.error("SERVICE_UNAVAILABLE",
                     "依赖服务暂时不可用，请稍后重试。"));
+    }
+
+    @ExceptionHandler(BusinessException.class)
+    public ResponseEntity<ApiResponse<?>> handleBusinessException(BusinessException e) {
+        log.warn("业务异常: {}", e.getMessage());
+        return ResponseEntity.status(e.getStatus())
+                .body(ApiResponse.error(e.getCode(), e.getMessage()));
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ResponseEntity<ApiResponse<?>> handleIllegalArgument(IllegalArgumentException e) {
+        log.warn("参数错误: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error("BAD_REQUEST", e.getMessage()));
     }
 
     @ExceptionHandler(Exception.class)

@@ -1,4 +1,7 @@
 # Local test configuration with PostgreSQL
+server:
+  port: 8081
+
 spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/campus_club
@@ -15,9 +18,11 @@ spring:
         format_sql: true
     show-sql: true
 
-  # Disable Flyway for local testing
+  # Enable Flyway for local testing
   flyway:
-    enabled: false
+    enabled: true
+    baseline-on-migrate: true
+    clean-disabled: false
 
   # Disable Redis for local testing
   autoconfigure:

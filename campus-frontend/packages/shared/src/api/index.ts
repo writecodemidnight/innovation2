@@ -5,8 +5,6 @@
 export * from './types';
 export * from './endpoints';
 
-// 导出uni客户端（供小程序和H5使用）
-export * from './client';
-
-// axios 客户端仅供 PC 端使用，需要单独导入
-// import { axiosClient } from '@campus/shared/api/client.axios'
+// 导出 axios 客户端（供 PC 浏览器使用）
+export { axiosApiClient as axiosClient, apiClient, clearTokenCache } from './client.axios';
+export * from './client.axios';

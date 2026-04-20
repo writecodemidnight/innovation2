@@ -98,6 +98,7 @@ import type { FormInstance, FormRules } from 'element-plus';
 import { ElMessage } from 'element-plus';
 import { useResourceStore } from '@/stores/resource';
 import { activityApi } from '@/api/activity';
+import { ActivityStatus } from '@campus/shared';
 import type { Activity } from '@campus/shared';
 
 const router = useRouter();
@@ -134,7 +135,7 @@ async function loadActivities() {
     const response = await activityApi.getList({
       page: 0,
       size: 100,
-      status: 'APPROVED',
+      status: ActivityStatus.APPROVED as any,
     });
     activities.value = response.content || [];
   } catch (error: any) {
