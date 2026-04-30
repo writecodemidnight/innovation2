@@ -4,7 +4,7 @@
     <view class="cover-section">
       <image
         class="cover-image"
-        :src="activity.coverImageUrl || 'https://picsum.photos/750/400'"
+        :src="activity.coverImageUrl || '/static/images/default-activity.png'"
         mode="aspectFill"
       />
       <view class="cover-overlay">
@@ -42,7 +42,7 @@
           <view class="info-content">
             <view class="info-label">参与人数</view>
             <view class="info-value">
-              {{ activity.currentParticipants }}/{{ activity.maxParticipants }}人
+              {{ activity.currentParticipants }}/{{ activity.maxParticipants || activity.capacity }}人
               <text class="quota-left">(剩余{{ remainingQuota }}人)</text>
             </view>
           </view>
@@ -54,6 +54,19 @@
     <view class="detail-section card">
       <view class="section-title">活动详情</view>
       <view class="detail-content">{{ activity.description }}</view>
+    </view>
+
+    <!-- 推荐活动 -->
+    <view v-if="recommendedActivities.length > 0" class="recommend-section card">
+      <view class="section-title">相关推荐</view>
+      <view class="recommend-list">
+        <ActivityCard
+          v-for="item in recommendedActivities"
+          :key="item.id"
+          :activity="item"
+          @click="goToDetail(item.id)"
+        />
+      </view>
     </view>
 
     <!-- 底部操作栏 -->
@@ -84,33 +97,43 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
-import { ActivityStatus, ActivityStatusMap, formatDateTime, Endpoints } from '@campus/shared';
+import { onShareAppMessage, onShareTimeline } from '@dcloudio/uni-app';
+import { ActivityStatus, formatDateTime, Endpoints } from '@campus/shared';
 import { apiClient } from '@campus/shared';
-import type { Activity } from '@campus/shared';
+import type { Activity, ActivityDetail } from '@campus/shared';
+import ActivityCard from '@/components/ActivityCard.vue';
+import { useUserStore } from '@/stores/user';
 
 // 活动数据
-const activity = ref<Partial<Activity>>({});
+const activity = ref<Partial<ActivityDetail>>({});
 const activityId = ref<number | null>(null);
+const recommendedActivities = ref<Activity[]>([]);
+const loadingRecommend = ref(false);
+const userStore = useUserStore();
 
 const isCollected = ref(false);
 const hasJoined = ref(false);
 
 // 计算属性
 const remainingQuota = computed(() => {
-  return (activity.value.maxParticipants || 0) - (activity.value.currentParticipants || 0);
+  const max = activity.value.maxParticipants || activity.value.capacity || 0;
+  return max - (activity.value.currentParticipants || 0);
 });
 
 const canJoin = computed(() => {
+  const max = activity.value.maxParticipants || activity.value.capacity || 0;
   return activity.value.status === ActivityStatus.REGISTERING &&
          !hasJoined.value &&
-         remainingQuota.value > 0;
+         remainingQuota.value > 0 &&
+         (activity.value.currentParticipants || 0) < max;
 });
 
 const joinButtonText = computed(() => {
+  const max = activity.value.maxParticipants || activity.value.capacity || 0;
   if (hasJoined.value) return '已报名';
   if (activity.value.status === ActivityStatus.COMPLETED) return '已结束';
   if (activity.value.status === ActivityStatus.CANCELLED) return '已取消';
-  if (remainingQuota.value <= 0) return '名额已满';
+  if ((activity.value.currentParticipants || 0) >= max) return '名额已满';
   return '立即报名';
 });
 
@@ -126,6 +149,10 @@ function getStatusText(status?: ActivityStatus) {
   return status ? (map[status] || status) : '';
 }
 
+function goToDetail(id: number) {
+  uni.navigateTo({ url: `/pages/activity/detail?id=${id}` });
+}
+
 function onShare() {
   uni.showToast({ title: '分享功能开发中', icon: 'none' });
 }
@@ -139,6 +166,21 @@ function onCollect() {
 }
 
 async function onJoin() {
+  // 检查登录状态
+  if (!userStore.isLoggedIn) {
+    uni.showModal({
+      title: '请先登录',
+      content: '报名活动需要先登录',
+      confirmText: '去登录',
+      success: (res) => {
+        if (res.confirm) {
+          uni.navigateTo({ url: '/pages/login/index' });
+        }
+      },
+    });
+    return;
+  }
+
   if (!canJoin.value || !activityId.value) return;
 
   uni.showModal({
@@ -161,12 +203,28 @@ async function onJoin() {
 
 async function loadActivityDetail(id: number) {
   try {
-    const data = await apiClient.get<Activity>(Endpoints.activities.detail(id));
+    const data = await apiClient.get<ActivityDetail>(Endpoints.activities.detail(id));
     activity.value = data;
     activityId.value = id;
-    // TODO: 检查用户是否已报名
+    // 加载推荐活动
+    loadRecommendedActivities(id);
   } catch (error: any) {
     uni.showToast({ title: error.message || '获取活动详情失败', icon: 'none' });
+  }
+}
+
+// 加载推荐活动
+async function loadRecommendedActivities(currentId: number) {
+  loadingRecommend.value = true;
+  try {
+    const data = await apiClient.get<Activity[]>(Endpoints.activities.recommend);
+    // 过滤掉当前活动
+    recommendedActivities.value = (data || []).filter(a => a.id !== currentId).slice(0, 3);
+  } catch (error) {
+    console.error('获取推荐活动失败:', error);
+    recommendedActivities.value = [];
+  } finally {
+    loadingRecommend.value = false;
   }
 }
 
@@ -178,6 +236,25 @@ onMounted(() => {
   if (id) {
     loadActivityDetail(Number(id));
   }
+});
+
+// 分享给朋友
+onShareAppMessage(() => {
+  return {
+    title: activity.value.title || '精彩活动推荐',
+    desc: activity.value.description?.slice(0, 50) || '快来看看这个精彩活动！',
+    path: `/pages/activity/detail?id=${activityId.value}`,
+    imageUrl: activity.value.coverImageUrl || '/static/logo.png',
+  };
+});
+
+// 分享到朋友圈
+onShareTimeline(() => {
+  return {
+    title: activity.value.title || '精彩活动推荐',
+    query: `id=${activityId.value}`,
+    imageUrl: activity.value.coverImageUrl || '/static/logo.png',
+  };
 });
 </script>
 
@@ -295,6 +372,24 @@ onMounted(() => {
   font-size: 28rpx;
   color: #666;
   line-height: 1.8;
+}
+
+.recommend-section {
+  margin: 20rpx;
+  padding: 30rpx;
+
+  .section-title {
+    font-size: 32rpx;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 20rpx;
+  }
+}
+
+.recommend-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
 }
 
 .bottom-bar {

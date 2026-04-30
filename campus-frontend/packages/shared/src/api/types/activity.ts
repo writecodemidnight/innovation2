@@ -56,6 +56,7 @@ export interface Activity {
   budget?: number;
   requiredResources?: string;
   requiresResources?: boolean;
+  registrationDeadline?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -81,10 +82,11 @@ export interface ActivityCreateRequest {
   startTime: string;
   endTime: string;
   location: string;
-  maxParticipants: number;
+  capacity: number;
   coverImageUrl?: string;
   budget?: number;
   requiredResourceIds?: number[];
+  registrationDeadline?: string;
 }
 
 /** 更新活动请求 */

@@ -11,20 +11,20 @@
 
     <!-- 评价表单 -->
     <view class="evaluate-form card">
-      <view class="form-item">
-        <view class="item-label">总体评分</view>
-        <uni-rate v-model="form.rating" :max="5" :value="5" />
-      </view>
+      <StarRating
+        v-model="form.rating"
+        label="总体评分"
+      />
 
-      <view class="form-item">
-        <view class="item-label">活动组织</view>
-        <uni-rate v-model="form.organizationRating" :max="5" :value="5" />
-      </view>
+      <StarRating
+        v-model="form.organizationRating"
+        label="活动组织"
+      />
 
-      <view class="form-item">
-        <view class="item-label">活动内容</view>
-        <uni-rate v-model="form.contentRating" :max="5" :value="5" />
-      </view>
+      <StarRating
+        v-model="form.contentRating"
+        label="活动内容"
+      />
 
       <view class="form-item">
         <view class="item-label">评价内容</view>
@@ -72,6 +72,7 @@ import { ref, computed, onMounted } from 'vue';
 import { Endpoints } from '@campus/shared';
 import { apiClient } from '@campus/shared';
 import type { Activity } from '@campus/shared';
+import StarRating from '@/components/StarRating.vue';
 
 const activity = ref<Partial<Activity>>({});
 const activityId = ref<number | null>(null);
@@ -93,9 +94,13 @@ onMounted(() => {
   const pages = getCurrentPages();
   const currentPage = pages[pages.length - 1];
   const { id } = currentPage.$page?.options || {};
-  if (id) {
-    activityId.value = Number(id);
-    loadActivityDetail(Number(id));
+  const parsedId = id ? Number(id) : NaN;
+  if (!isNaN(parsedId) && parsedId > 0) {
+    activityId.value = parsedId;
+    loadActivityDetail(parsedId);
+  } else {
+    uni.showToast({ title: '无效的活动ID', icon: 'none' });
+    setTimeout(() => uni.navigateBack(), 1500);
   }
 });
 
@@ -128,7 +133,7 @@ async function submit() {
 
   uni.showModal({
     title: '确认提交',
-    content: '确定要提交评价吗？',
+    content: '确定要提交评价吗？每个人只能评价一次。',
     success: async (res) => {
       if (res.confirm) {
         try {
@@ -143,13 +148,14 @@ async function submit() {
             }
           }
 
-          // 提交评价
-          await apiClient.post(Endpoints.activities.evaluate(activityId.value!), {
+          // 提交评价到反馈API
+          await apiClient.post(Endpoints.feedback.create, {
+            activityId: activityId.value,
             rating: form.value.rating,
             organizationRating: form.value.organizationRating,
             contentRating: form.value.contentRating,
             content: form.value.comment,
-            photos: uploadedPhotos,
+            images: uploadedPhotos,
           });
 
           uni.hideLoading();
@@ -201,6 +207,8 @@ async function uploadImage(filePath: string): Promise<string | null> {
   align-items: center;
   padding: 20rpx;
   margin: 20rpx;
+  background: #fff;
+  border-radius: 16rpx;
 }
 
 .activity-image {
@@ -229,6 +237,8 @@ async function uploadImage(filePath: string): Promise<string | null> {
 .evaluate-form {
   margin: 20rpx;
   padding: 30rpx;
+  background: #fff;
+  border-radius: 16rpx;
 }
 
 .form-item {

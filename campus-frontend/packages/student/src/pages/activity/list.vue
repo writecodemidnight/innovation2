@@ -19,7 +19,14 @@
     </scroll-view>
 
     <!-- 活动列表 -->
-    <scroll-view scroll-y class="activity-list" @scrolltolower="onLoadMore">
+    <scroll-view
+      scroll-y
+      class="activity-list"
+      :refresher-enabled="true"
+      :refresher-triggered="refreshing"
+      @refresherrefresh="onRefresh"
+      @scrolltolower="onLoadMore"
+    >
       <ActivityCard
         v-for="activity in filteredActivities"
         :key="activity.id"
@@ -38,17 +45,20 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
-import { ActivityType, ActivityTypeMap } from '@campus/shared';
-import type { Activity } from '@campus/shared';
+import { ref, computed, onMounted, watch } from 'vue';
+import { ActivityType, ActivityTypeMap, apiClient, Endpoints } from '@campus/shared';
+import type { Activity, PageResponse } from '@campus/shared';
 import ActivityCard from '@/components/ActivityCard.vue';
 
 const searchKeyword = ref('');
 const currentTab = ref('ALL');
 const activities = ref<Activity[]>([]);
 const loading = ref(false);
+const refreshing = ref(false);
 const finished = ref(false);
-const page = ref(1);
+const page = ref(0);
+const pageSize = ref(10);
+const totalElements = ref(0);
 
 const tabs = [
   { label: '全部', value: 'ALL' },
@@ -59,6 +69,7 @@ const tabs = [
 ];
 
 const filteredActivities = computed(() => {
+  // 前端筛选（基于已加载的数据）
   let result = activities.value;
   if (currentTab.value !== 'ALL') {
     result = result.filter(a => a.activityType === currentTab.value);
@@ -75,41 +86,72 @@ const filteredActivities = computed(() => {
 
 const loadMoreStatus = computed(() => {
   if (loading.value) return 'loading';
-  if (finished.value) return 'noMore';
+  if (finished.value || activities.value.length >= totalElements.value) return 'noMore';
   return 'more';
 });
 
 onMounted(() => {
+  // 从 URL 参数获取类型
+  const pages = getCurrentPages();
+  const currentPage = pages[pages.length - 1];
+  const { type } = currentPage.$page?.options || {};
+  if (type && Object.values(ActivityType).includes(type as ActivityType)) {
+    currentTab.value = type;
+  }
   loadActivities();
 });
 
-function loadActivities() {
+// 监听筛选条件变化，重新加载
+watch([currentTab], () => {
+  activities.value = [];
+  page.value = 0;
+  finished.value = false;
+  loadActivities();
+});
+
+async function loadActivities() {
   if (loading.value || finished.value) return;
   loading.value = true;
 
-  // 模拟数据
-  const mockData: Activity[] = Array.from({ length: 10 }, (_, i) => ({
-    id: i + 1,
-    title: `精彩活动 ${i + 1}`,
-    description: '这是一个精彩的社团活动，欢迎大家踊跃参加！',
-    clubId: 1,
-    clubName: '科技创新社',
-    organizerId: 1,
-    activityType: Object.values(ActivityType)[i % 5],
-    startTime: new Date(Date.now() + 86400000 * (i + 1)).toISOString(),
-    endTime: new Date(Date.now() + 86400000 * (i + 1) + 7200000).toISOString(),
-    location: '学生活动中心 301',
-    maxParticipants: 50,
-    currentParticipants: 20 + i * 3,
-    status: 'REGISTERING' as any,
-    coverImageUrl: `https://picsum.photos/400/200?random=${i}`,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  }));
+  try {
+    // 构建请求参数
+    const params: Record<string, any> = {
+      page: page.value,
+      size: pageSize.value,
+      // 暂时不筛选状态，显示所有活动以便测试
+      // status: 'REGISTERING',
+    };
 
-  activities.value.push(...mockData);
-  loading.value = false;
-  if (page.value >= 3) finished.value = true;
+    // 如果选择了特定类型，添加类型筛选
+    if (currentTab.value !== 'ALL') {
+      params.type = currentTab.value;
+    }
+
+    // 如果有搜索关键词，添加关键词筛选
+    if (searchKeyword.value) {
+      params.keyword = searchKeyword.value;
+    }
+
+    const response = await apiClient.get<PageResponse<Activity>>(Endpoints.activities.list, { params });
+
+    if (response && response.content) {
+      activities.value.push(...response.content);
+      totalElements.value = response.totalElements || 0;
+
+      // 判断是否已加载完所有数据
+      if (response.content.length < pageSize.value || activities.value.length >= totalElements.value) {
+        finished.value = true;
+      }
+    } else {
+      finished.value = true;
+    }
+  } catch (error: any) {
+    console.error('加载活动列表失败:', error);
+    uni.showToast({ title: error.message || '加载失败', icon: 'none' });
+    finished.value = true;
+  } finally {
+    loading.value = false;
+  }
 }
 
 function onLoadMore() {
@@ -118,7 +160,21 @@ function onLoadMore() {
 }
 
 function onSearch() {
-  // 搜索逻辑
+  // 搜索时重置列表
+  activities.value = [];
+  page.value = 0;
+  finished.value = false;
+  loadActivities();
+}
+
+async function onRefresh() {
+  refreshing.value = true;
+  activities.value = [];
+  page.value = 0;
+  finished.value = false;
+  await loadActivities();
+  refreshing.value = false;
+  uni.stopPullDownRefresh();
 }
 
 function goToDetail(id: number) {

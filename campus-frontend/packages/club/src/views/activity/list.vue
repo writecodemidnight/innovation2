@@ -22,6 +22,7 @@
     <div class="filter-bar">
       <el-radio-group v-model="filterStatus" size="small" @change="handleFilter">
         <el-radio-button value="">全部</el-radio-button>
+        <el-radio-button :value="ActivityStatus.PENDING_APPROVAL">待审批</el-radio-button>
         <el-radio-button :value="ActivityStatus.REGISTERING">报名中</el-radio-button>
         <el-radio-button :value="ActivityStatus.ONGOING">进行中</el-radio-button>
         <el-radio-button :value="ActivityStatus.COMPLETED">已结束</el-radio-button>
@@ -51,11 +52,11 @@
       <el-table-column prop="participants" label="报名情况" width="120">
         <template #default="{ row }">
           <el-progress
-            :percentage="Math.round((row.currentParticipants / row.maxParticipants) * 100)"
-            :status="row.currentParticipants >= row.maxParticipants ? 'exception' : ''"
+            :percentage="Math.round((row.currentParticipants / (row.capacity || row.maxParticipants || 1)) * 100)"
+            :status="row.currentParticipants >= (row.capacity || row.maxParticipants || 0) ? 'exception' : ''"
           />
           <div class="participant-text">
-            {{ row.currentParticipants }}/{{ row.maxParticipants }}人
+            {{ row.currentParticipants }}/{{ row.capacity || row.maxParticipants || '-' }}人
           </div>
         </template>
       </el-table-column>

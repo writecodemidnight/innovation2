@@ -9,7 +9,7 @@ from typing import Dict, List, Optional
 from datetime import datetime, timedelta
 
 from ...forecasting.memory_efficient_forecaster import MemoryEfficientForecaster
-from ...tasks.forecasting_tasks import predict_participation_task
+from ...tasks.forecasting_tasks import predict_activity_attendance as predict_participation_task
 
 router = APIRouter(prefix="/forecasting", tags=["v3-forecasting"])
 

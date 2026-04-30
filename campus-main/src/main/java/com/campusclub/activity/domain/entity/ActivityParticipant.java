@@ -7,7 +7,13 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "activity_participants")
+@Table(
+    name = "activity_participants",
+    uniqueConstraints = @UniqueConstraint(
+        name = "uk_activity_user",
+        columnNames = {"activity_id", "user_id"}
+    )
+)
 @Getter
 @Setter
 @NoArgsConstructor
@@ -20,6 +26,11 @@ public class ActivityParticipant extends BaseEntity {
 
     @Column(name = "user_id", nullable = false)
     private Long userId;
+
+    @Version
+    @Column(name = "version")
+    @Builder.Default
+    private Long version = 0L;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)

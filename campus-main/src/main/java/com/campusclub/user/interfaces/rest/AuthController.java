@@ -1,9 +1,7 @@
 package com.campusclub.user.interfaces.rest;
 
 import com.campusclub.dto.ApiResponse;
-import com.campusclub.user.application.dto.LoginRequest;
-import com.campusclub.user.application.dto.LoginResponse;
-import com.campusclub.user.application.dto.WechatLoginRequest;
+import com.campusclub.user.application.dto.*;
 import com.campusclub.user.application.service.AuthApplicationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -48,5 +46,21 @@ public class AuthController {
     @Operation(summary = "退出登录", description = "用户退出登录")
     public ResponseEntity<ApiResponse<Void>> logout() {
         return ResponseEntity.ok(ApiResponse.success(null));
+    }
+
+    @PostMapping("/register/club")
+    @Operation(summary = "社团注册", description = "注册新社团，同时创建社长账号")
+    public ResponseEntity<ApiResponse<LoginResponse>> registerClub(
+            @RequestBody @Valid ClubRegistrationRequest request) {
+        LoginResponse response = authService.registerClub(request);
+        return ResponseEntity.ok(ApiResponse.success("社团注册成功", response));
+    }
+
+    @PostMapping("/register/student")
+    @Operation(summary = "学生注册", description = "学生用户注册")
+    public ResponseEntity<ApiResponse<LoginResponse>> registerStudent(
+            @RequestBody @Valid StudentRegistrationRequest request) {
+        LoginResponse response = authService.registerStudent(request);
+        return ResponseEntity.ok(ApiResponse.success("注册成功", response));
     }
 }

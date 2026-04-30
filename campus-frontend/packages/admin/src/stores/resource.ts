@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
+import { apiClient } from '@campus/shared/api/client.axios';
 import {
-  apiClient,
   Endpoints,
   type AdminResource,
   type ResourceRequest,

@@ -83,6 +83,7 @@ def calculate_consistency_ratio(judgment_matrix: np.ndarray) -> float:
 
 
 @router.post("/ahp", response_model=AHPEvaluateResponse)
+@router.post("", response_model=AHPEvaluateResponse)
 async def evaluate_ahp(request: AHPEvaluateRequest):
     """
     AHP五维活动效果评估

@@ -50,6 +50,18 @@ public interface FeedbackRepository extends JpaRepository<Feedback, Long> {
     Double getAverageRating(@Param("activityId") Long activityId);
 
     /**
+     * 获取活动的平均组织评分
+     */
+    @Query("SELECT AVG(f.organizationRating) FROM Feedback f WHERE f.activityId = :activityId AND f.organizationRating IS NOT NULL")
+    Double getAverageOrganizationRating(@Param("activityId") Long activityId);
+
+    /**
+     * 获取活动的平均内容评分
+     */
+    @Query("SELECT AVG(f.contentRating) FROM Feedback f WHERE f.activityId = :activityId AND f.contentRating IS NOT NULL")
+    Double getAverageContentRating(@Param("activityId") Long activityId);
+
+    /**
      * 获取活动的评价总数
      */
     long countByActivityId(Long activityId);

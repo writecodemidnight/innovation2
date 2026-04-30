@@ -11,8 +11,13 @@ export interface Feedback {
   username?: string;
   avatar?: string;
   rating: number;
+  organizationRating?: number;
+  contentRating?: number;
   content: string;
   images?: string[];
+  sentimentScore?: number;
+  sentimentLevel?: string;
+  keywords?: string[];
   createdAt: string;
   updatedAt?: string;
 }
@@ -21,6 +26,8 @@ export interface Feedback {
 export interface CreateFeedbackRequest {
   activityId: number;
   rating: number;
+  organizationRating?: number;
+  contentRating?: number;
   content: string;
   images?: string[];
 }
@@ -30,6 +37,8 @@ export interface FeedbackStats {
   activityId: number;
   activityTitle?: string;
   averageRating: number;
+  averageOrganizationRating?: number;
+  averageContentRating?: number;
   totalCount: number;
   ratingDistribution: RatingDistributionItem[];
 }

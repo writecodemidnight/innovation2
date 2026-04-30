@@ -12,6 +12,7 @@ import org.mapstruct.*;
 public interface ActivityMapper {
 
     @Mapping(target = "clubName", ignore = true)
+    @Mapping(source = "registrationDeadline", target = "registrationDeadline")
     ActivityDto toDto(Activity activity);
 
     Activity toEntity(ActivityCreateRequest request);

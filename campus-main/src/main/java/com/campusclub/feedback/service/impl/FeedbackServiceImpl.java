@@ -7,6 +7,8 @@ import com.campusclub.feedback.dto.CreateFeedbackRequest;
 import com.campusclub.feedback.dto.FeedbackDTO;
 import com.campusclub.feedback.dto.FeedbackStatsDTO;
 import com.campusclub.feedback.service.FeedbackService;
+import com.campusclub.feedback.service.nlp.NLPSentimentService;
+import com.campusclub.feedback.service.nlp.SentimentResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -27,6 +29,7 @@ import java.util.List;
 public class FeedbackServiceImpl implements FeedbackService {
 
     private final FeedbackRepository feedbackRepository;
+    private final NLPSentimentService nlpSentimentService;
 
     @Override
     @Transactional
@@ -36,15 +39,31 @@ public class FeedbackServiceImpl implements FeedbackService {
             throw new BusinessException("您已对该活动进行过评价", HttpStatus.BAD_REQUEST);
         }
 
-        Feedback feedback = Feedback.builder()
+        // 调用NLP情感分析（如果内容不为空）
+        SentimentResult sentimentResult = null;
+        if (request.getContent() != null && !request.getContent().trim().isEmpty()) {
+            sentimentResult = nlpSentimentService.analyzeSentiment(request.getContent());
+        }
+
+        Feedback.FeedbackBuilder feedbackBuilder = Feedback.builder()
                 .activityId(request.getActivityId())
                 .userId(userId)
                 .rating(request.getRating())
+                .organizationRating(request.getOrganizationRating())
+                .contentRating(request.getContentRating())
                 .content(request.getContent())
-                .images(request.getImages())
-                .build();
+                .images(request.getImages());
 
-        Feedback saved = feedbackRepository.save(feedback);
+        // 添加NLP情感分析结果
+        if (sentimentResult != null) {
+            feedbackBuilder
+                    .sentimentScore(sentimentResult.getSentimentScore())
+                    .sentimentLevel(sentimentResult.getSentimentLevel())
+                    .sentimentConfidence(sentimentResult.getConfidence())
+                    .keywords(sentimentResult.getKeywords());
+        }
+
+        Feedback saved = feedbackRepository.save(feedbackBuilder.build());
         return convertToDTO(saved);
     }
 
@@ -70,6 +89,8 @@ public class FeedbackServiceImpl implements FeedbackService {
     @Override
     public FeedbackStatsDTO getFeedbackStats(Long activityId) {
         Double averageRating = feedbackRepository.getAverageRating(activityId);
+        Double averageOrganizationRating = feedbackRepository.getAverageOrganizationRating(activityId);
+        Double averageContentRating = feedbackRepository.getAverageContentRating(activityId);
         long totalCount = feedbackRepository.countByActivityId(activityId);
         List<Object[]> distribution = feedbackRepository.getRatingDistribution(activityId);
 
@@ -92,6 +113,8 @@ public class FeedbackServiceImpl implements FeedbackService {
         return FeedbackStatsDTO.builder()
                 .activityId(activityId)
                 .averageRating(averageRating != null ? Math.round(averageRating * 100.0) / 100.0 : 0.0)
+                .averageOrganizationRating(averageOrganizationRating != null ? Math.round(averageOrganizationRating * 100.0) / 100.0 : 0.0)
+                .averageContentRating(averageContentRating != null ? Math.round(averageContentRating * 100.0) / 100.0 : 0.0)
                 .totalCount(totalCount)
                 .ratingDistribution(ratingDistribution)
                 .build();
@@ -142,8 +165,13 @@ public class FeedbackServiceImpl implements FeedbackService {
                 .activityId(feedback.getActivityId())
                 .userId(feedback.getUserId())
                 .rating(feedback.getRating())
+                .organizationRating(feedback.getOrganizationRating())
+                .contentRating(feedback.getContentRating())
                 .content(feedback.getContent())
                 .images(feedback.getImages())
+                .sentimentScore(feedback.getSentimentScore())
+                .sentimentLevel(feedback.getSentimentLevel())
+                .keywords(feedback.getKeywords())
                 .createdAt(feedback.getCreatedAt())
                 .updatedAt(feedback.getUpdatedAt())
                 .build();

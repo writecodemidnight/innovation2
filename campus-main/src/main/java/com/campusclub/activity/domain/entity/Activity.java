@@ -45,7 +45,13 @@ public class Activity extends BaseEntity {
     private Integer capacity;
 
     @Column(name = "current_participants")
+    @Builder.Default
     private Integer currentParticipants = 0;
+
+    @Version
+    @Column(name = "version")
+    @Builder.Default
+    private Long version = 0L;
 
     @Column(name = "club_id")
     private Long clubId;
@@ -62,6 +68,9 @@ public class Activity extends BaseEntity {
     @Column(name = "required_resources", columnDefinition = "jsonb")
     @JdbcTypeCode(SqlTypes.JSON)
     private String requiredResources;
+
+    @Column(name = "registration_deadline")
+    private LocalDateTime registrationDeadline;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "approval_status", nullable = false, length = 20)
@@ -82,13 +91,14 @@ public class Activity extends BaseEntity {
     }
 
     /**
-     * Approve activity: PENDING_APPROVAL -> APPROVED
+     * Approve activity: PENDING_APPROVAL -> REGISTERING
+     * 审批通过后直接进入报名状态，让学生可以立即报名
      */
     public void approve() {
         if (this.status != ActivityStatus.PENDING_APPROVAL) {
             throw new IllegalStateException("Only PENDING_APPROVAL activities can be approved. Current status: " + this.status);
         }
-        this.status = ActivityStatus.APPROVED;
+        this.status = ActivityStatus.REGISTERING;
         this.approvalStatus = ApprovalStatus.APPROVED;
     }
 

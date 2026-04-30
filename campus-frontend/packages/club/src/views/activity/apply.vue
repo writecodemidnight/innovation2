@@ -54,6 +54,7 @@
           <el-upload
             class="cover-uploader"
             action="/api/upload"
+            :headers="uploadHeaders"
             :show-file-list="false"
             :on-success="handleUploadSuccess"
             :before-upload="beforeUpload"
@@ -137,6 +138,11 @@ const submitting = ref(false);
 const isEdit = ref(false);
 const activityId = ref<number | null>(null);
 
+// 上传请求头
+const uploadHeaders = {
+  Authorization: `Bearer ${localStorage.getItem('access_token') || ''}`
+};
+
 // 表单数据
 const form = reactive({
   title: '',
@@ -195,7 +201,13 @@ const rules: FormRules = {
 
 // 上传相关
 const handleUploadSuccess: UploadProps['onSuccess'] = (response) => {
-  form.coverImageUrl = response.url;
+  console.log('Upload response:', response);
+  if ((response.code === 'SUCCESS' || response.success) && response.data) {
+    form.coverImageUrl = response.data;
+    ElMessage.success('上传成功');
+  } else {
+    ElMessage.error(response.message || '上传失败');
+  }
 };
 
 const beforeUpload: UploadProps['beforeUpload'] = (rawFile) => {
@@ -221,13 +233,14 @@ async function handleSubmit() {
         const data: ActivityCreateRequest = {
           title: form.title,
           description: form.description,
-          clubId: userStore.userInfo?.clubId || 1,
+          clubId: userStore.userInfo?.clubId,
           activityType: form.activityType as ActivityType,
           startTime: form.timeRange[0],
           endTime: form.timeRange[1],
           location: form.location,
-          maxParticipants: form.maxParticipants,
+          capacity: form.maxParticipants,
           coverImageUrl: form.coverImageUrl,
+          registrationDeadline: form.registrationDeadline,
         };
 
         if (isEdit.value && activityId.value) {
@@ -256,7 +269,8 @@ async function loadActivityDetail(id: number) {
     form.timeRange = [activity.startTime, activity.endTime];
     form.location = activity.location;
     form.coverImageUrl = activity.coverImageUrl;
-    form.maxParticipants = activity.maxParticipants;
+    form.maxParticipants = activity.capacity || activity.maxParticipants || 50;
+    form.registrationDeadline = activity.registrationDeadline || '';
     form.description = activity.description;
   } catch (error: any) {
     ElMessage.error(error.message || '获取活动详情失败');

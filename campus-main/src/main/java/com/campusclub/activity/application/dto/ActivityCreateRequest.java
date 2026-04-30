@@ -22,5 +22,6 @@ public record ActivityCreateRequest(
     Long clubId,
     @Size(max = 500) String coverImageUrl,
     @DecimalMin("0.00") BigDecimal budget,
-    String requiredResources
+    String requiredResources,
+    @Future LocalDateTime registrationDeadline
 ) {}

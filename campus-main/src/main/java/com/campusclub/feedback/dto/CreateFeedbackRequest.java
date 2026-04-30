@@ -28,6 +28,14 @@ public class CreateFeedbackRequest {
     @Max(value = 5, message = "评分最大为5")
     private Integer rating;
 
+    @Min(value = 1, message = "组织评分最小为1")
+    @Max(value = 5, message = "组织评分最大为5")
+    private Integer organizationRating;
+
+    @Min(value = 1, message = "内容评分最小为1")
+    @Max(value = 5, message = "内容评分最大为5")
+    private Integer contentRating;
+
     @Size(max = 2000, message = "内容长度不能超过2000字符")
     private String content;
 

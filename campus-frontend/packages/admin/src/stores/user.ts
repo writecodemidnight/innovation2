@@ -2,8 +2,8 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import type { User } from '@campus/shared';
 import { UserRole, UserRoleMap, Endpoints } from '@campus/shared';
-import { apiClient } from '@campus/shared';
-import { clearTokenCache } from '@campus/shared/api';
+import { apiClient } from '@campus/shared/api/client.axios';
+import { clearTokenCache } from '@campus/shared/api/client.axios';
 
 export const useUserStore = defineStore('user', () => {
   // State

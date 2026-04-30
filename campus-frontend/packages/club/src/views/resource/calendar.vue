@@ -112,28 +112,7 @@ async function loadReservations() {
     allReservations.value = resourceStore.reservations || [];
   } catch (error: any) {
     ElMessage.error(error.message || '获取预约列表失败');
-    // 使用模拟数据
-    allReservations.value = [
-      {
-        id: 1,
-        resourceId: 1,
-        resourceName: '学生活动中心301报告厅',
-        activityTitle: '科技创新讲座',
-        startTime: new Date().toISOString().split('T')[0] + 'T14:00:00',
-        endTime: new Date().toISOString().split('T')[0] + 'T16:00:00',
-        status: 'APPROVED',
-        purpose: '需要投影仪和音响设备',
-      },
-      {
-        id: 2,
-        resourceId: 2,
-        resourceName: '学生活动中心302会议室',
-        activityTitle: '社团例会',
-        startTime: new Date(Date.now() + 86400000).toISOString().split('T')[0] + 'T18:00:00',
-        endTime: new Date(Date.now() + 86400000).toISOString().split('T')[0] + 'T20:00:00',
-        status: 'PENDING',
-      },
-    ];
+    allReservations.value = [];
   } finally {
     loading.value = false;
   }

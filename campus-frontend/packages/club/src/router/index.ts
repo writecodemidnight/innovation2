@@ -4,13 +4,17 @@ import { useUserStore } from '@/stores/user';
 
 const routes: RouteRecordRaw[] = [
   {
-    path: '/login',
+    path: '/',
+    redirect: '/club',
+  },
+  {
+    path: '/club/login',
     name: 'Login',
     component: () => import('@/views/login/index.vue'),
     meta: { public: true },
   },
   {
-    path: '/',
+    path: '/club',
     component: () => import('@/layouts/MainLayout.vue'),
     meta: { requiresAuth: true },
     children: [
@@ -86,17 +90,23 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/fund/apply.vue'),
         meta: { title: '申请资金', hidden: true },
       },
+      {
+        path: 'profile',
+        name: 'Profile',
+        component: () => import('@/views/profile/index.vue'),
+        meta: { title: '个人资料', hidden: true },
+      },
     ],
   },
   {
-    path: '/:pathMatch(.*)*',
+    path: '/club/:pathMatch(.*)*',
     name: 'NotFound',
     component: () => import('@/views/error/404.vue'),
   },
 ];
 
 const router = createRouter({
-  history: createWebHistory('/club'),
+  history: createWebHistory(),
   routes,
   scrollBehavior() {
     return { top: 0 };
@@ -108,9 +118,9 @@ router.beforeEach((to, from, next) => {
   const userStore = useUserStore();
 
   if (to.meta.requiresAuth && !userStore.isLoggedIn) {
-    next('/login');
-  } else if (to.path === '/login' && userStore.isLoggedIn) {
-    next('/');
+    next('/club/login');
+  } else if (to.path === '/club/login' && userStore.isLoggedIn) {
+    next('/club');
   } else {
     next();
   }

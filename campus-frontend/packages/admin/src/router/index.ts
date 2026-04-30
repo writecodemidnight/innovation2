@@ -21,6 +21,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '数据监控大屏', icon: 'Monitor' },
       },
       {
+        path: 'activities',
+        name: 'ActivityManagement',
+        component: () => import('@/views/activity/index.vue'),
+        meta: { title: '活动管理', icon: 'Calendar' },
+      },
+      {
         path: 'approval/pending',
         name: 'ApprovalPending',
         component: () => import('@/views/approval/pending.vue'),

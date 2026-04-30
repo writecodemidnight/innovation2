@@ -8,22 +8,21 @@
 
       <el-menu
         :default-active="activeMenu"
-        router
         class="sidebar-menu"
         background-color="#001529"
         text-color="#bfcbd9"
         active-text-color="#409EFF"
       >
         <el-menu-item
-          v-for="route in menuRoutes"
-          :key="route.path"
-          :index="route.path"
-          :route="route"
+          v-for="item in menuItems"
+          :key="item.path"
+          :index="item.path"
+          @click="handleMenuClick(item.path)"
         >
           <el-icon>
-            <component :is="route.meta?.icon" />
+            <component :is="item.icon" />
           </el-icon>
-          <template #title>{{ route.meta?.title }}</template>
+          <span>{{ item.title }}</span>
         </el-menu-item>
       </el-menu>
     </el-aside>
@@ -64,9 +63,21 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import type { RouteRecordRaw } from 'vue-router';
 import { useUserStore } from '@/stores/user';
 import Breadcrumb from '@/components/Breadcrumb.vue';
+import {
+  School,
+  ArrowDown,
+  Odometer,
+  List,
+  Plus,
+  Calendar,
+  OfficeBuilding,
+  DocumentChecked,
+  PieChart,
+  ChatLineRound,
+  Money
+} from '@element-plus/icons-vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -74,23 +85,35 @@ const userStore = useUserStore();
 
 const activeMenu = computed(() => route.path);
 
-const menuRoutes = computed(() => {
-  const mainRoute = router.getRoutes().find(r => r.path === '/');
-  return mainRoute?.children?.filter(r => !r.meta?.hidden) || [];
-});
+// 直接定义菜单项，避免路由获取问题
+const menuItems = [
+  { path: '/club', title: '概览', icon: 'Odometer' },
+  { path: '/club/activities', title: '活动列表', icon: 'List' },
+  { path: '/club/activities/apply', title: '申报活动', icon: 'Plus' },
+  { path: '/club/resources/calendar', title: '资源日历', icon: 'Calendar' },
+  { path: '/club/resources/apply', title: '预约资源', icon: 'OfficeBuilding' },
+  { path: '/club/resources/status', title: '预约状态', icon: 'DocumentChecked' },
+  { path: '/club/reports/radar', title: '效果分析', icon: 'PieChart' },
+  { path: '/club/reports/feedback', title: '反馈汇总', icon: 'ChatLineRound' },
+  { path: '/club/funds', title: '资金管理', icon: 'Money' },
+];
 
 const userAvatar = computed(() => {
   return `https://api.dicebear.com/7.x/avataaars/svg?seed=${userStore.userInfo?.id}`;
 });
 
+const handleMenuClick = (path: string) => {
+  router.push(path);
+};
+
 const handleCommand = (command: string) => {
   switch (command) {
     case 'profile':
-      router.push('/profile');
+      router.push('/club/profile');
       break;
     case 'logout':
       userStore.logout();
-      router.push('/login');
+      router.push('/club/login');
       break;
   }
 };

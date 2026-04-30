@@ -46,7 +46,7 @@
                 {{ formatDateTime(activity.endTime) }}
               </el-descriptions-item>
               <el-descriptions-item label="报名人数">
-                {{ activity.currentParticipants }}/{{ activity.maxParticipants }}
+                {{ activity.currentParticipants }}/{{ activity.capacity || activity.maxParticipants || "-" }}
               </el-descriptions-item>
               <el-descriptions-item label="所属社团">
                 {{ activity.clubName || '-' }}
@@ -62,7 +62,15 @@
       </el-col>
 
       <el-col :span="8">
-        <el-card>
+        <!-- AI智能预测 -->
+        <ActivityPrediction
+          v-if="activity"
+          :activity-type="activity.activityType"
+          :venue-type="activity.location || 'default'"
+          :planned-date="activity.startTime"
+        />
+
+        <el-card class="participants-card">
           <template #header>
             <div class="card-header">
               <span>参与者列表</span>
@@ -93,9 +101,13 @@ import { formatDateTime, ActivityStatusMap, ActivityTypeMap, ActivityStatus } fr
 import { activityApi } from '@/api/activity';
 import type { Activity } from '@campus/shared';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import ActivityPrediction from '@/components/ActivityPrediction.vue';
 
 const route = useRoute();
 const router = useRouter();
+
+// 组件注册
+const ActivityPredictionComponent = ActivityPrediction;
 
 const activity = ref<Activity | null>(null);
 const participants = ref<any[]>([]);

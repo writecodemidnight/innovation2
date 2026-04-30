@@ -3,3 +3,4 @@
  */
 
 export * from './activity';
+export * from './feedback';

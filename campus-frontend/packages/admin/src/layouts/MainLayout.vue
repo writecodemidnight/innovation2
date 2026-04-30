@@ -74,8 +74,23 @@ const userStore = useUserStore();
 const activeMenu = computed(() => route.path);
 
 const menuRoutes = computed(() => {
-  const mainRoute = router.getRoutes().find(r => r.path === '/');
-  return mainRoute?.children?.filter(r => !r.meta?.hidden) || [];
+  const routes = router.getRoutes();
+  console.log('[Menu] All routes:', routes.map(r => ({ path: r.path, name: r.name, children: r.children?.map(c => c.path) })));
+
+  // 查找根路由（可能是 '/' 或 '/admin' 或 ''）
+  let mainRoute = routes.find(r => r.path === '/' && r.children?.length > 0);
+  if (!mainRoute) {
+    mainRoute = routes.find(r => r.path === '' && r.children?.length > 0);
+  }
+  if (!mainRoute && routes.length > 0) {
+    // 如果找不到，取第一个有 children 的路由
+    mainRoute = routes.find(r => r.children && r.children.length > 0);
+  }
+
+  console.log('[Menu] Main route found:', mainRoute);
+  const children = mainRoute?.children?.filter(r => !r.meta?.hidden) || [];
+  console.log('[Menu] Menu items:', children.map(c => ({ path: c.path, title: c.meta?.title })));
+  return children;
 });
 
 const userAvatar = computed(() => {

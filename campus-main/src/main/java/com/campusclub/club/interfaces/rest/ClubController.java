@@ -1,15 +1,21 @@
 package com.campusclub.club.interfaces.rest;
 
-import com.campusclub.club.application.dto.*;
+import com.campusclub.club.application.dto.ClubCreateRequest;
+import com.campusclub.club.application.dto.ClubDto;
+import com.campusclub.club.application.dto.ClubMemberDto;
+import com.campusclub.club.application.dto.ClubStatsDto;
 import com.campusclub.club.application.service.ClubApplicationService;
 import com.campusclub.club.domain.entity.Club;
 import com.campusclub.club.domain.entity.ClubMember;
+import com.campusclub.common.security.UserContext;
+import com.campusclub.common.exception.BusinessException;
 import com.campusclub.dto.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -19,6 +25,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequestMapping("/v1/clubs")
 @RequiredArgsConstructor
@@ -104,5 +111,27 @@ public class ClubController {
             @PathVariable Long userId) {
         clubService.removeClubMember(id, userId);
         return ResponseEntity.ok(ApiResponse.success(null));
+    }
+
+    @GetMapping("/{id}/stats")
+    @SecurityRequirement(name = "bearerAuth")
+    @Operation(summary = "社团统计", description = "获取社团活动统计数据")
+    public ResponseEntity<ApiResponse<ClubStatsDto>> getClubStats(@PathVariable Long id) {
+        ClubStatsDto stats = clubService.getClubStats(id);
+        return ResponseEntity.ok(ApiResponse.success(stats));
+    }
+
+    @GetMapping("/my")
+    @SecurityRequirement(name = "bearerAuth")
+    @Operation(summary = "我的社团", description = "获取当前登录用户所属的社团信息")
+    public ResponseEntity<ApiResponse<ClubDto>> getMyClub() {
+        Long userId = UserContext.getCurrentUserId();
+        log.info("[ClubController] 获取我的社团, userId={}", userId);
+        ClubDto club = clubService.getClubByUserId(userId);
+        if (club == null) {
+            log.warn("[ClubController] 用户 {} 没有社团", userId);
+            return ResponseEntity.ok(ApiResponse.success(null));
+        }
+        return ResponseEntity.ok(ApiResponse.success(club));
     }
 }

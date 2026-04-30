@@ -28,3 +28,27 @@ export interface ClubDashboardStats {
   /** 已结束活动数 */
   completedActivities: number;
 }
+
+/** 活动趋势数据 */
+export interface ActivityTrend {
+  /** 日期列表 */
+  dates: string[];
+  /** 每天的活动数量 */
+  counts: number[];
+}
+
+/** 活动类型分布项 */
+export interface ActivityTypeItem {
+  /** 类型名称 */
+  name: string;
+  /** 类型编码 */
+  code: string;
+  /** 活动数量 */
+  value: number;
+}
+
+/** 活动类型分布 */
+export interface ActivityTypeDistribution {
+  /** 类型分布列表 */
+  types: ActivityTypeItem[];
+}

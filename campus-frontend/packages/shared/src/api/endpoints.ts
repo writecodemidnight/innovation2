@@ -12,7 +12,7 @@ export const Endpoints = {
   auth: {
     login: `${API_BASE_URL}/auth/login`,
     logout: `${API_BASE_URL}/auth/logout`,
-    wxLogin: `${API_BASE_URL}/auth/wx-login`,
+    wxLogin: `${API_BASE_URL}/auth/wechat-login`,
     wxBind: `${API_BASE_URL}/auth/wx-bind`,
     refresh: `${API_BASE_URL}/auth/refresh`,
     profile: `${API_BASE_URL}/auth/profile`,
@@ -23,6 +23,8 @@ export const Endpoints = {
   users: {
     list: `${API_BASE_URL}/users`,
     detail: (id: number) => `${API_BASE_URL}/users/${id}`,
+    me: `${API_BASE_URL}/users/me`,
+    updateMe: `${API_BASE_URL}/users/me`,
     create: `${API_BASE_URL}/users`,
     update: (id: number) => `${API_BASE_URL}/users/${id}`,
     delete: (id: number) => `${API_BASE_URL}/users/${id}`,
@@ -36,8 +38,8 @@ export const Endpoints = {
     create: `${API_BASE_URL}/activities`,
     update: (id: number) => `${API_BASE_URL}/activities/${id}`,
     delete: (id: number) => `${API_BASE_URL}/activities/${id}`,
-    join: (id: number) => `${API_BASE_URL}/activities/${id}/join`,
-    leave: (id: number) => `${API_BASE_URL}/activities/${id}/leave`,
+    join: (id: number) => `${API_BASE_URL}/activities/${id}/register`,
+    leave: (id: number) => `${API_BASE_URL}/activities/${id}/cancel`,
     evaluate: (id: number) => `${API_BASE_URL}/activities/${id}/evaluate`,
     evaluations: (id: number) => `${API_BASE_URL}/activities/${id}/evaluations`,
     recommend: `${API_BASE_URL}/activities/recommend`,
@@ -49,6 +51,7 @@ export const Endpoints = {
   clubs: {
     list: `${API_BASE_URL}/clubs`,
     detail: (id: number) => `${API_BASE_URL}/clubs/${id}`,
+    my: `${API_BASE_URL}/clubs/my`,
     create: `${API_BASE_URL}/clubs`,
     update: (id: number) => `${API_BASE_URL}/clubs/${id}`,
     delete: (id: number) => `${API_BASE_URL}/clubs/${id}`,
@@ -170,6 +173,7 @@ export const Endpoints = {
   // 反馈评价相关
   feedback: {
     list: `${API_BASE_URL}/feedback`,
+    my: `${API_BASE_URL}/feedback/my`,
     detail: (id: number) => `${API_BASE_URL}/feedback/${id}`,
     create: `${API_BASE_URL}/feedback`,
     update: (id: number) => `${API_BASE_URL}/feedback/${id}`,

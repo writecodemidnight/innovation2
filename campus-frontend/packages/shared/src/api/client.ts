@@ -165,7 +165,19 @@ export type ApiClient = ReturnType<typeof createApiClient>;
 // 默认API客户端实例
 // 注意：endpoints.ts 中已包含 '/api/v1' 前缀，这里用空字符串避免重复
 // H5/PC 环境：在 vite.config.ts 中配置 proxy
-export const apiClient = createApiClient({ baseURL: '' });
+// 小程序环境：需要配置不校验域名，并使用本地后端地址
+const getBaseURL = () => {
+  // #ifdef H5
+  return '';
+  // #endif
+  // #ifdef MP-WEIXIN
+  // 开发环境使用本地后端（端口8082，避免冲突）
+  return 'http://localhost:8082';
+  // #endif
+  return '';
+};
+
+export const apiClient = createApiClient({ baseURL: getBaseURL() });
 
 // 兼容旧代码的别名导出
 export const uniClient = apiClient;

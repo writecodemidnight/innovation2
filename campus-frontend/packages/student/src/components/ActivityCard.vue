@@ -1,6 +1,6 @@
 <template>
   <view class="activity-card" @click="$emit('click')">
-    <image class="card-cover" :src="activity.coverImageUrl || 'https://picsum.photos/400/200'" mode="aspectFill" />
+    <image class="card-cover" :src="activity.coverImageUrl || '/static/images/default-activity.png'" mode="aspectFill" />
     <view class="card-content">
       <view class="card-header">
         <text class="status-tag" :class="statusClass">{{ statusLabel }}</text>
@@ -69,9 +69,13 @@ const typeLabel = computed(() => {
   return ActivityTypeMap[props.activity.activityType] || props.activity.activityType;
 });
 
-// 社团Logo
+// 社团Logo（使用真实logo或纯色背景）
 const clubLogo = computed(() => {
-  return `https://picsum.photos/40/40?random=${props.activity.clubId}`;
+  // 如果activity有clubLogo字段则使用
+  const logo = (props.activity as any).clubLogoUrl;
+  if (logo) return logo;
+  // 否则使用渐变背景代替默认图片
+  return `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect fill="linear-gradient(135deg, #667eea 0%, #764ba2 100%)" width="40" height="40"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="white" font-size="16">社</text></svg>`)}`;
 });
 
 // 进度百分比

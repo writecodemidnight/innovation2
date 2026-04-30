@@ -43,7 +43,8 @@ public class SecurityConfig {
                     "/actuator/health",
                     "/v3/api-docs/**",
                     "/swagger-ui/**",
-                    "/swagger-ui.html"
+                    "/swagger-ui.html",
+                    "/uploads/**"
                 ).permitAll()
                 // GET请求活动列表公开访问
                 .requestMatchers(HttpMethod.GET, "/v1/activities").permitAll()
@@ -82,7 +83,11 @@ public class SecurityConfig {
             "http://localhost:3014",
             "http://localhost:3015",
             "http://localhost:5173",
-            "http://localhost:8081"
+            "http://localhost:5174",
+            "http://localhost:8081",
+            "http://localhost:8082",
+            "http://localhost:3004",
+            "http://localhost:3005"
         ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*"));

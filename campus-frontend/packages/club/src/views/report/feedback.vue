@@ -28,6 +28,16 @@
               <div class="rating-value">{{ stats.averageRating.toFixed(1) }}</div>
               <el-rate :model-value="stats.averageRating" disabled show-score />
               <div class="rating-count">共 {{ stats.totalCount }} 条评价</div>
+              <div v-if="stats.averageOrganizationRating || stats.averageContentRating" class="sub-ratings">
+                <div v-if="stats.averageOrganizationRating" class="sub-rating-item">
+                  <span class="sub-label">组织</span>
+                  <span class="sub-value">{{ stats.averageOrganizationRating.toFixed(1) }}</span>
+                </div>
+                <div v-if="stats.averageContentRating" class="sub-rating-item">
+                  <span class="sub-label">内容</span>
+                  <span class="sub-value">{{ stats.averageContentRating.toFixed(1) }}</span>
+                </div>
+              </div>
             </div>
             <div class="rating-bars">
               <div v-for="item in stats.ratingDistribution" :key="item.stars" class="rating-bar">
@@ -38,6 +48,14 @@
             </div>
           </div>
         </el-card>
+
+        <!-- AI情感分析 -->
+        <FeedbackSentimentAnalysis
+          v-if="selectedActivityId && feedbacks.length > 0"
+          :activity-id="String(selectedActivityId)"
+          :feedbacks="feedbackItemsForAnalysis"
+          class="sentiment-card"
+        />
       </el-col>
       <el-col :span="16">
         <el-card v-loading="listLoading">
@@ -65,6 +83,14 @@
                   </div>
                 </div>
                 <el-rate :model-value="feedback.rating" disabled />
+              </div>
+              <div class="feedback-dimensions" v-if="feedback.organizationRating || feedback.contentRating">
+                <span v-if="feedback.organizationRating" class="dimension-tag">
+                  组织: {{ feedback.organizationRating }}分
+                </span>
+                <span v-if="feedback.contentRating" class="dimension-tag">
+                  内容: {{ feedback.contentRating }}分
+                </span>
               </div>
               <div class="feedback-content">{{ feedback.content }}</div>
               <div v-if="feedback.images?.length" class="feedback-images">
@@ -98,10 +124,18 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { ElMessage } from 'element-plus';
-import { formatDateTime, FeedbackFilterType } from '@campus/shared';
-import type { Feedback, FeedbackStats, Activity } from '@campus/shared';
-import { feedbackApi } from '@/api/feedback';
+import { formatDateTime } from '@campus/shared';
+import type { Feedback, FeedbackStats, Activity, PageResponse } from '@campus/shared';
+
+// 本地定义筛选类型（避免 shared 包导出 issues）
+enum FeedbackFilterType {
+  ALL = 'all',
+  POSITIVE = 'positive',
+  NEGATIVE = 'negative',
+}
 import { activityApi } from '@/api/activity';
+import { axiosApiClient } from '@campus/shared/api/client.axios';
+import FeedbackSentimentAnalysis from '@/components/FeedbackSentimentAnalysis.vue';
 
 // 默认头像
 const defaultAvatar = 'https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png';
@@ -151,6 +185,14 @@ const filteredFeedbacks = computed(() => {
   return feedbacks.value;
 });
 
+// 转换为情感分析所需的格式
+const feedbackItemsForAnalysis = computed(() => {
+  return feedbacks.value.map(f => ({
+    studentId: String(f.userId || f.id),
+    text: f.content || ''
+  })).filter(f => f.text.trim() !== '');
+});
+
 // 加载活动列表
 async function loadActivities() {
   activitiesLoading.value = true;
@@ -158,7 +200,7 @@ async function loadActivities() {
     const response = await activityApi.getList({
       page: 0,
       size: 100,
-      status: 'COMPLETED',
+      status: 'COMPLETED' as any,
     });
     activities.value = response.content || [];
     // 默认选择第一个活动
@@ -177,20 +219,21 @@ async function loadActivities() {
 async function loadStats(activityId: number) {
   statsLoading.value = true;
   try {
-    const data = await feedbackApi.getStats(activityId);
+    const data = await axiosApiClient.get<FeedbackStats>(`/api/v1/feedback/activity/${activityId}/stats`);
     stats.value = data;
   } catch (error: any) {
-    // 如果API不存在，使用默认值
+    ElMessage.error(error.message || '获取统计数据失败');
+    // 重置为默认值
     stats.value = {
       activityId,
-      averageRating: 4.5,
-      totalCount: 52,
+      averageRating: 0,
+      totalCount: 0,
       ratingDistribution: [
-        { stars: 5, count: 32, percentage: 61 },
-        { stars: 4, count: 12, percentage: 23 },
-        { stars: 3, count: 5, percentage: 10 },
-        { stars: 2, count: 2, percentage: 4 },
-        { stars: 1, count: 1, percentage: 2 },
+        { stars: 5, count: 0, percentage: 0 },
+        { stars: 4, count: 0, percentage: 0 },
+        { stars: 3, count: 0, percentage: 0 },
+        { stars: 2, count: 0, percentage: 0 },
+        { stars: 1, count: 0, percentage: 0 },
       ],
     };
   } finally {
@@ -202,50 +245,21 @@ async function loadStats(activityId: number) {
 async function loadFeedbacks(activityId: number) {
   listLoading.value = true;
   try {
-    const response = await feedbackApi.getByActivity(activityId, {
-      page: page.value - 1,
-      size: pageSize.value,
-    });
+    const response = await axiosApiClient.get<PageResponse<Feedback>>(
+      `/api/v1/feedback/activity/${activityId}`,
+      {
+        params: {
+          page: page.value - 1,
+          size: pageSize.value,
+        }
+      }
+    );
     feedbacks.value = response.content || [];
     total.value = response.totalElements || 0;
   } catch (error: any) {
-    // 如果API不存在，使用模拟数据
-    feedbacks.value = [
-      {
-        id: 1,
-        activityId,
-        userId: 1,
-        username: '张三',
-        avatar: 'https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png',
-        rating: 5,
-        content: '活动内容非常丰富，专家讲解深入浅出，收获很大！希望以后能多举办类似的活动。',
-        images: ['https://picsum.photos/200/200?random=1'],
-        createdAt: '2024-03-10T14:30:00',
-      },
-      {
-        id: 2,
-        activityId,
-        userId: 2,
-        username: '李四',
-        avatar: 'https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png',
-        rating: 4,
-        content: '整体不错，就是互动时间有点短，希望能增加更多实践环节。',
-        images: [],
-        createdAt: '2024-03-10T15:00:00',
-      },
-      {
-        id: 3,
-        activityId,
-        userId: 3,
-        username: '王五',
-        avatar: 'https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png',
-        rating: 5,
-        content: '很棒的活动，认识了很多志同道合的朋友！',
-        images: [],
-        createdAt: '2024-03-10T16:00:00',
-      },
-    ];
-    total.value = feedbacks.value.length;
+    ElMessage.error(error.message || '获取评价列表失败');
+    feedbacks.value = [];
+    total.value = 0;
   } finally {
     listLoading.value = false;
   }
@@ -320,6 +334,33 @@ onMounted(() => {
       color: #909399;
       font-size: 14px;
     }
+
+    .sub-ratings {
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px dashed #ebeef5;
+
+      .sub-rating-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+
+        .sub-label {
+          font-size: 12px;
+          color: #909399;
+        }
+
+        .sub-value {
+          font-size: 20px;
+          font-weight: 600;
+          color: #f7ba2a;
+        }
+      }
+    }
   }
 
   .rating-bars {
@@ -390,6 +431,20 @@ onMounted(() => {
       }
     }
 
+    .feedback-dimensions {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 8px;
+
+      .dimension-tag {
+        font-size: 12px;
+        color: #409eff;
+        background: #ecf5ff;
+        padding: 2px 8px;
+        border-radius: 4px;
+      }
+    }
+
     .feedback-content {
       color: #606266;
       line-height: 1.6;
@@ -413,6 +468,10 @@ onMounted(() => {
 .pagination {
   display: flex;
   justify-content: center;
+  margin-top: 20px;
+}
+
+.sentiment-card {
   margin-top: 20px;
 }
 </style>

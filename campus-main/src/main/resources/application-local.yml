@@ -1,6 +1,7 @@
 # Local test configuration with PostgreSQL
 server:
-  port: 8081
+  port: 8082
+  shutdown: graceful  # 优雅停机，避免端口占用
 
 spring:
   datasource:

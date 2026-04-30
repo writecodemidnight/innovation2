@@ -21,6 +21,17 @@ export enum ClubCategory {
   OTHER = 'OTHER'
 }
 
+/** 社团类型标签映射 */
+export const ClubCategoryMap: Record<ClubCategory, { label: string; color: string }> = {
+  [ClubCategory.ACADEMIC]: { label: '学术科技', color: '#409EFF' },
+  [ClubCategory.ARTS]: { label: '文化艺术', color: '#E6A23C' },
+  [ClubCategory.SPORTS]: { label: '体育运动', color: '#67C23A' },
+  [ClubCategory.VOLUNTEER]: { label: '公益志愿', color: '#F56C6C' },
+  [ClubCategory.TECHNOLOGY]: { label: '科技创新', color: '#909399' },
+  [ClubCategory.CULTURE]: { label: '传统文化', color: '#8B4513' },
+  [ClubCategory.OTHER]: { label: '其他', color: '#606266' },
+};
+
 /** 社团实体 */
 export interface Club {
   id: number;

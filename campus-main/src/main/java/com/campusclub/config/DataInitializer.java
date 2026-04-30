@@ -29,7 +29,9 @@ public class DataInitializer implements CommandLineRunner {
         // 只创建不存在的测试用户，不删除现有用户
         String[][] testUsers = {
                 {"admin", "admin123", "admin@campus.edu", "系统管理员", "ADMIN001", "ADMIN"},
+                {"admin2", "admin123", "admin2@campus.edu", "系统管理员2", "ADMIN002", "ADMIN"},
                 {"club1", "admin123", "club1@campus.edu", "社团管理员", "2021001", "CLUB_PRESIDENT"},
+                {"club2", "club2", "club2@campus.edu", "社团管理员2", "2021005", "CLUB_PRESIDENT"},
                 {"student1", "admin123", "stu1@campus.edu", "张三", "2021002", "STUDENT"},
                 {"student2", "admin123", "stu2@campus.edu", "李四", "2021004", "STUDENT"}
         };

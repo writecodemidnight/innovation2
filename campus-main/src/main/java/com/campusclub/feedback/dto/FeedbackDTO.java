@@ -24,8 +24,16 @@ public class FeedbackDTO {
     private String username;
     private String avatar;
     private Integer rating;
+    private Integer organizationRating;
+    private Integer contentRating;
     private String content;
     private List<String> images;
+
+    // NLP情感分析结果
+    private Double sentimentScore;
+    private String sentimentLevel;
+    private List<String> keywords;
+
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

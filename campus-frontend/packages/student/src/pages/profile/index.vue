@@ -2,13 +2,13 @@
   <view class="profile-page">
     <!-- 用户信息卡片 -->
     <view class="user-card" :style="{ paddingTop: statusBarHeight + 60 + 'px' }">
-      <view class="user-info">
-        <image class="avatar" :src="user?.avatar || '/static/images/default-avatar.png'" mode="aspectFill" />
+      <view class="user-info" @click="handleUserCardClick">
+        <image class="avatar" :src="avatarUrl" mode="aspectFill" />
         <view class="user-detail">
-          <view class="nickname">{{ user?.realName || user?.username || '未登录' }}</view>
-          <view class="student-id">{{ user?.studentId || '点击登录' }}</view>
+          <view class="nickname">{{ user?.realName || user?.username || '点击登录' }}</view>
+          <view class="student-id">{{ user?.studentId || user?.role === 'STUDENT' ? '学生用户' : '登录后查看更多信息' }}</view>
         </view>
-        <uni-icons type="right" size="20" color="#fff" @click="goToSettings" />
+        <uni-icons type="right" size="20" color="#fff" />
       </view>
       <view class="user-stats">
         <view class="stat-item">
@@ -70,14 +70,17 @@
     </view>
 
     <!-- 退出登录 -->
-    <view v-if="user" class="logout-section">
-      <button class="logout-btn" @click="logout">退出登录</button>
+    <!-- 登录/退出按钮 -->
+    <view class="logout-section">
+      <button v-if="user" class="logout-btn" @click="logout">退出登录</button>
+      <button v-else class="login-btn" @click="goToLogin">立即登录</button>
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
+import { useUserStore } from '@/stores/user';
 import { Endpoints } from '@campus/shared';
 import { apiClient } from '@campus/shared';
 import type { User } from '@campus/shared';
@@ -88,13 +91,28 @@ interface UserStats {
   collected: number;
 }
 
+const userStore = useUserStore();
 const statusBarHeight = ref(20);
-const user = ref<User | null>(null);
 
 const stats = ref<UserStats>({
   participated: 0,
   evaluated: 0,
   collected: 0,
+});
+
+// 使用 store 中的用户信息
+const user = computed(() => userStore.userInfo);
+const isLoggedIn = computed(() => userStore.isLoggedIn);
+
+// 头像URL（使用真实头像或默认SVG）
+const avatarUrl = computed(() => {
+  if (user.value?.avatarUrl) return user.value.avatarUrl;
+  if (user.value?.avatar) return user.value.avatar;
+  // 生成带有用户首字母的默认头像
+  const name = user.value?.nickname || user.value?.username || '?';
+  const initial = name.charAt(0).toUpperCase();
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120"><rect fill="#1989fa" width="120" height="120"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="white" font-size="48">${initial}</text></svg>`;
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 });
 
 onMounted(() => {
@@ -104,17 +122,22 @@ onMounted(() => {
 });
 
 async function loadUserInfo() {
+  // 先尝试从 store 获取用户信息
+  if (!userStore.token) {
+    return;
+  }
+
   try {
-    const data = await apiClient.get<User>(Endpoints.auth.profile);
-    user.value = data;
+    await userStore.fetchUserInfo();
+
     // 获取用户统计数据
-    if (data?.id) {
-      const userStats = await apiClient.get<UserStats>(Endpoints.users.stats(data.id));
+    if (user.value?.id) {
+      const userStats = await apiClient.get<UserStats>(Endpoints.users.stats(user.value.id));
       stats.value = userStats || { participated: 0, evaluated: 0, collected: 0 };
     }
   } catch (error: any) {
-    // 未登录或获取失败
-    user.value = null;
+    console.error('获取用户信息失败:', error);
+    // Token 过期或无效，会自动退出
   }
 }
 
@@ -127,7 +150,7 @@ function goToHistory() {
 }
 
 function goToEvaluations() {
-  uni.showToast({ title: '功能开发中', icon: 'none' });
+  uni.navigateTo({ url: '/pages/evaluate/list' });
 }
 
 function goToCollections() {
@@ -142,19 +165,26 @@ function goToAbout() {
   uni.showToast({ title: '功能开发中', icon: 'none' });
 }
 
+function handleUserCardClick() {
+  if (!isLoggedIn.value) {
+    goToLogin();
+  } else {
+    goToSettings();
+  }
+}
+
+function goToLogin() {
+  uni.navigateTo({ url: '/pages/login/index' });
+}
+
 async function logout() {
   uni.showModal({
     title: '确认退出',
     content: '确定要退出登录吗？',
     success: async (res) => {
       if (res.confirm) {
-        try {
-          await apiClient.post(Endpoints.auth.logout);
-        } catch (error) {
-          // 即使退出API失败也清除本地状态
-        }
-        user.value = null;
-        uni.removeStorageSync('access_token');
+        await userStore.logout();
+        stats.value = { participated: 0, evaluated: 0, collected: 0 };
         uni.showToast({ title: '已退出', icon: 'success' });
       }
     },
@@ -266,5 +296,21 @@ async function logout() {
   border-radius: 12rpx;
   font-size: 32rpx;
   border: none;
+
+  &::after {
+    border: none;
+  }
+}
+
+.login-btn {
+  background: #1989fa;
+  color: #fff;
+  border-radius: 12rpx;
+  font-size: 32rpx;
+  border: none;
+
+  &::after {
+    border: none;
+  }
 }
 </style>

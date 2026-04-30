@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeoutException;
@@ -103,9 +104,44 @@ public class AlgorithmService {
         throw new AlgorithmException("算法执行失败，已达到最大重试次数");
     }
 
+    /**
+     * 调用预测服务 - 活动参与度预测
+     */
+    public AlgorithmResponse predictParticipation(Map<String, Object> params) {
+        String url = algorithmServiceUrl + "/api/v3/ml/forecasting/participation";
+        return restTemplate.postForObject(url, params, AlgorithmResponse.class);
+    }
+
+    /**
+     * 调用NLP服务 - 情感分析
+     */
+    public AlgorithmResponse analyzeSentiment(String text) {
+        String url = algorithmServiceUrl + "/api/v3/ml/nlp/sentiment";
+        Map<String, String> body = Map.of("text", text);
+        return restTemplate.postForObject(url, body, AlgorithmResponse.class);
+    }
+
+    /**
+     * 调用NLP服务 - 批量情感分析
+     */
+    public AlgorithmResponse analyzeSentimentBatch(List<String> texts) {
+        String url = algorithmServiceUrl + "/api/v3/ml/nlp/sentiment/batch";
+        Map<String, List<String>> body = Map.of("texts", texts);
+        return restTemplate.postForObject(url, body, AlgorithmResponse.class);
+    }
+
+    /**
+     * 调用聚类服务
+     */
+    public AlgorithmResponse performClustering(Map<String, Object> params) {
+        String url = algorithmServiceUrl + "/api/v3/ml/clustering";
+        return restTemplate.postForObject(url, params, AlgorithmResponse.class);
+    }
+
     private AlgorithmResponse executeAlgorithm(AlgorithmRequest request) {
-        String url = algorithmServiceUrl + "/api/v1/algorithms/" + request.getAlgorithmType().toLowerCase();
-        return restTemplate.postForObject(url, request, AlgorithmResponse.class);
+        // 兼容旧版算法调用
+        String url = algorithmServiceUrl + "/api/v3/ml/" + request.getAlgorithmType().toLowerCase();
+        return restTemplate.postForObject(url, request.getParameters(), AlgorithmResponse.class);
     }
 
     private String generateCacheKey(AlgorithmRequest request) {

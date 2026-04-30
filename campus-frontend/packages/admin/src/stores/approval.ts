@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
+import { apiClient } from '@campus/shared/api/client.axios';
 import {
-  apiClient,
   Endpoints,
   type ApprovalCounts,
   type HistoryCounts,

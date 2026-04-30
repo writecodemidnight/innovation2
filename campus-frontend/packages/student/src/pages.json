@@ -1,6 +1,13 @@
 {
   "pages": [
     {
+      "path": "pages/login/index",
+      "style": {
+        "navigationBarTitleText": "登录",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/index/index",
       "style": {
         "navigationBarTitleText": "活动推荐",
@@ -35,6 +42,12 @@
       "path": "pages/evaluate/photos",
       "style": {
         "navigationBarTitleText": "上传照片"
+      }
+    },
+    {
+      "path": "pages/evaluate/list",
+      "style": {
+        "navigationBarTitleText": "我的评价"
       }
     },
     {

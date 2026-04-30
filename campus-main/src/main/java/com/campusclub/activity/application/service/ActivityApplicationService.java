@@ -11,6 +11,7 @@ import com.campusclub.activity.domain.repository.ActivityRepository;
 import com.campusclub.club.domain.entity.Club;
 import com.campusclub.club.domain.repository.ClubRepository;
 import com.campusclub.common.exception.BusinessException;
+import com.campusclub.common.security.UserContext;
 import com.campusclub.user.domain.entity.User;
 import com.campusclub.user.domain.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -56,15 +57,20 @@ public class ActivityApplicationService {
         Page<Activity> activities;
 
         if (clubId != null && status != null) {
+            // 社团内部查看指定状态的活动
             activities = activityRepository.findByClubIdAndStatus(clubId, status, pageable);
         } else if (clubId != null) {
+            // 查看指定社团的所有活动（社团端需要看到所有状态的活动）
             activities = activityRepository.findByClubId(clubId, pageable);
         } else if (status != null) {
+            // 按状态筛选
             activities = activityRepository.findByStatus(status, pageable);
         } else if (type != null) {
-            activities = activityRepository.findByActivityType(type, pageable);
+            // 按类型筛选公开活动
+            activities = activityRepository.findPublicActivitiesByType(type, pageable);
         } else {
-            activities = activityRepository.findAll(pageable);
+            // 默认只返回已批准的公开活动
+            activities = activityRepository.findPublicActivities(pageable);
         }
 
         return enrichWithClubName(activities);
@@ -80,13 +86,20 @@ public class ActivityApplicationService {
     @Transactional
     public ActivityDto createActivity(Long userId, ActivityCreateRequest request) {
         validateUserExists(userId);
-        if (request.clubId() != null) {
-            validateClubExists(request.clubId());
+
+        // 如果没有指定clubId，自动使用当前用户的社团（目前只有一个社团id=5）
+        Long clubId = request.clubId();
+        if (clubId == null) {
+            clubId = UserContext.getCurrentClubId();
         }
+
+        // 验证社团存在
+        validateClubExists(clubId);
 
         Activity activity = activityMapper.toEntity(request);
         activity.setCreatedBy(userId);
-        activity.setStatus(Activity.ActivityStatus.PLANNING);
+        activity.setClubId(clubId);
+        activity.setStatus(Activity.ActivityStatus.PENDING_APPROVAL);
         activity.setApprovalStatus(Activity.ApprovalStatus.NONE);
         activity.setCurrentParticipants(0);
 
@@ -118,6 +131,7 @@ public class ActivityApplicationService {
         activity.setCoverImageUrl(request.coverImageUrl());
         activity.setBudget(request.budget());
         activity.setRequiredResources(request.requiredResources());
+        activity.setRegistrationDeadline(request.registrationDeadline());
 
         Activity updatedActivity = activityRepository.save(activity);
         return enrichWithClubName(activityMapper.toDto(updatedActivity));
@@ -300,7 +314,56 @@ public class ActivityApplicationService {
                 dto.coverImageUrl(),
                 dto.budget(),
                 dto.approvalStatus(),
+                dto.registrationDeadline(),
                 dto.createdAt()
         );
+    }
+
+    // ========== Recommendation Methods ==========
+
+    @Transactional(readOnly = true)
+    public List<ActivityDto> getHotActivities() {
+        List<Activity> activities = activityRepository.findHotActivities(Pageable.ofSize(10));
+        return enrichWithClubName(activities);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ActivityDto> getUpcomingActivities() {
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime endTime = now.plusDays(7);
+        List<Activity> activities = activityRepository.findUpcomingActivities(now, endTime, Pageable.ofSize(10));
+        return enrichWithClubName(activities);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ActivityDto> getRecommendedActivities(Long userId) {
+        // 简化版推荐：基于用户历史参与类型进行推荐
+        // 实际生产环境应该调用推荐算法服务
+        Activity.ActivityType preferredType = null;
+        if (userId != null) {
+            preferredType = getUserPreferredActivityType(userId);
+        }
+        List<Activity> activities = activityRepository.findRecommendedActivities(preferredType, Pageable.ofSize(10));
+        return enrichWithClubName(activities);
+    }
+
+    private Activity.ActivityType getUserPreferredActivityType(Long userId) {
+        // 获取用户最常参与的活动类型
+        List<ActivityParticipant> participations = participantRepository.findByUserId(userId);
+        if (participations.isEmpty()) {
+            return null;
+        }
+
+        List<Long> activityIds = participations.stream()
+                .map(ActivityParticipant::getActivityId)
+                .toList();
+
+        List<Activity> activities = activityRepository.findAllById(activityIds);
+        return activities.stream()
+                .collect(Collectors.groupingBy(Activity::getActivityType, Collectors.counting()))
+                .entrySet().stream()
+                .max(Map.Entry.comparingByValue())
+                .map(Map.Entry::getKey)
+                .orElse(null);
     }
 }

@@ -103,7 +103,7 @@
         </el-table-column>
         <el-table-column prop="participants" label="报名人数" width="120">
           <template #default="{ row }">
-            {{ row.currentParticipants }}/{{ row.maxParticipants }}
+            {{ row.currentParticipants }}/{{ row.capacity || row.maxParticipants || "-" }}
           </template>
         </el-table-column>
         <el-table-column label="操作" width="150" fixed="right">
@@ -119,17 +119,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { Calendar, User, Star, TrendCharts } from '@element-plus/icons-vue';
 import { formatDateTime, ActivityStatusMap, ActivityStatus } from '@campus/shared';
-import type { Activity, ClubDashboardStats } from '@campus/shared';
+import type { Activity, ClubDashboardStats, ActivityTrend, ActivityTypeDistribution } from '@campus/shared';
 import * as echarts from 'echarts';
 import { activityApi } from '@/api/activity';
 import { dashboardApi } from '@/api/dashboard';
 import { ElMessage } from 'element-plus';
+import { useUserStore } from '@/stores/user';
 
 const router = useRouter();
+const userStore = useUserStore();
 const trendPeriod = ref('month');
 const trendChartRef = ref<HTMLElement>();
 const pieChartRef = ref<HTMLElement>();
@@ -173,6 +175,7 @@ const loadStats = async () => {
   statsLoading.value = true;
   try {
     const response = await dashboardApi.getStats();
+    console.log("[Dashboard] API response:", response);
     stats.value = response;
   } catch (error: any) {
     ElMessage.error(error.message || '获取统计数据失败');
@@ -181,32 +184,81 @@ const loadStats = async () => {
   }
 };
 
+// 活动趋势数据
+const activityTrend = ref<ActivityTrend>({ dates: [], counts: [] });
+
+// 加载活动趋势数据
+const loadActivityTrend = async () => {
+  try {
+    // 计算日期范围（最近7天）
+    const end = new Date();
+    const start = new Date();
+    start.setDate(end.getDate() - 6);
+
+    const startStr = start.toISOString().split('T')[0];
+    const endStr = end.toISOString().split('T')[0];
+
+    const response = await dashboardApi.getActivityTrends(startStr, endStr);
+    activityTrend.value = response;
+
+    // 更新图表
+    updateTrendChart();
+  } catch (error: any) {
+    console.error('获取活动趋势失败:', error);
+  }
+};
+
+// 活动类型分布数据
+const activityTypeDistribution = ref<ActivityTypeDistribution>({ types: [] });
+
+// 加载活动类型分布
+const loadActivityTypeDistribution = async () => {
+  try {
+    const response = await dashboardApi.getActivityTypeDistribution();
+    activityTypeDistribution.value = response;
+
+    // 更新图表
+    updatePieChart();
+  } catch (error: any) {
+    console.error('获取活动类型分布失败:', error);
+  }
+};
+
+// 监听趋势周期变化
+watch(trendPeriod, () => {
+  loadActivityTrend();
+});
+
 // 图表实例
 let trendChart: echarts.ECharts | null = null;
 let pieChart: echarts.ECharts | null = null;
 
-// 初始化趋势图
-const initTrendChart = () => {
-  if (!trendChartRef.value) return;
+// 更新趋势图
+const updateTrendChart = () => {
+  if (!trendChart) return;
 
-  trendChart = echarts.init(trendChartRef.value);
   const option = {
     tooltip: {
       trigger: 'axis',
     },
     xAxis: {
       type: 'category',
-      data: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
+      data: activityTrend.value.dates.length > 0
+        ? activityTrend.value.dates
+        : ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
     },
     yAxis: {
       type: 'value',
+      minInterval: 1,
     },
     series: [
       {
         name: '活动数',
         type: 'line',
         smooth: true,
-        data: [2, 3, 1, 4, 2, 5, 3],
+        data: activityTrend.value.counts.length > 0
+          ? activityTrend.value.counts
+          : [0, 0, 0, 0, 0, 0, 0],
         areaStyle: {
           color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
             { offset: 0, color: 'rgba(24, 144, 255, 0.3)' },
@@ -225,14 +277,27 @@ const initTrendChart = () => {
   trendChart.setOption(option);
 };
 
-// 初始化饼图
-const initPieChart = () => {
-  if (!pieChartRef.value) return;
+// 初始化趋势图
+const initTrendChart = () => {
+  if (!trendChartRef.value) return;
+  trendChart = echarts.init(trendChartRef.value);
+  updateTrendChart();
+};
 
-  pieChart = echarts.init(pieChartRef.value);
+// 更新饼图
+const updatePieChart = () => {
+  if (!pieChart) return;
+
+  const data = activityTypeDistribution.value.types.length > 0
+    ? activityTypeDistribution.value.types.map(t => ({ value: t.value, name: t.name }))
+    : [
+        { value: 0, name: '暂无数据' },
+      ];
+
   const option = {
     tooltip: {
       trigger: 'item',
+      formatter: '{b}: {c} ({d}%)',
     },
     legend: {
       orient: 'vertical',
@@ -263,26 +328,31 @@ const initPieChart = () => {
         labelLine: {
           show: false,
         },
-        data: [
-          { value: 12, name: '讲座' },
-          { value: 8, name: '工作坊' },
-          { value: 5, name: '竞赛' },
-          { value: 3, name: '社交' },
-          { value: 2, name: '其他' },
-        ],
+        data: data,
       },
     ],
   };
   pieChart.setOption(option);
 };
 
+// 初始化饼图
+const initPieChart = () => {
+  if (!pieChartRef.value) return;
+  pieChart = echarts.init(pieChartRef.value);
+  updatePieChart();
+};
+
 // 加载最近活动
 const loadRecentActivities = async () => {
   try {
+    // 确保用户已登录后再获取活动列表
+    // 后端会自动根据当前用户的 clubId 返回对应社团的活动
     const response = await activityApi.getList({ page: 0, size: 5 });
     recentActivities.value = response.content || [];
   } catch (error) {
+    console.error('获取最近活动失败:', error);
     // 使用默认数据
+    recentActivities.value = [];
   }
 };
 
@@ -291,6 +361,8 @@ onMounted(() => {
   initPieChart();
   loadStats();
   loadRecentActivities();
+  loadActivityTrend();
+  loadActivityTypeDistribution();
 
   // 窗口大小改变时重绘图表
   window.addEventListener('resize', () => {

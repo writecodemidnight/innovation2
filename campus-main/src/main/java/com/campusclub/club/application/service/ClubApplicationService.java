@@ -1,5 +1,6 @@
 package com.campusclub.club.application.service;
 
+import com.campusclub.activity.domain.repository.ActivityRepository;
 import com.campusclub.club.application.dto.*;
 import com.campusclub.club.application.mapper.ClubMapper;
 import com.campusclub.club.domain.entity.Club;
@@ -9,13 +10,16 @@ import com.campusclub.club.domain.repository.ClubRepository;
 import com.campusclub.user.domain.entity.User;
 import com.campusclub.user.domain.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ClubApplicationService {
@@ -23,6 +27,7 @@ public class ClubApplicationService {
     private final ClubRepository clubRepository;
     private final ClubMemberRepository clubMemberRepository;
     private final UserRepository userRepository;
+    private final ActivityRepository activityRepository;
     private final ClubMapper clubMapper;
 
     @Transactional(readOnly = true)
@@ -129,5 +134,61 @@ public class ClubApplicationService {
         Club club = clubRepository.findById(clubId).orElseThrow();
         club.setMemberCount((int) clubMemberRepository.countByClubId(clubId));
         clubRepository.save(club);
+    }
+
+    @Transactional(readOnly = true)
+    public ClubStatsDto getClubStats(Long clubId) {
+        // 活动总数
+        Integer activityCount = activityRepository.countByClubId(clubId);
+
+        // 总参与人数
+        Integer totalParticipants = activityRepository.sumParticipantsByClubId(clubId);
+
+        // 待审批活动数
+        Integer pendingCount = activityRepository.countPendingByClubId(clubId);
+
+        // 进行中活动数
+        Integer ongoingCount = activityRepository.countOngoingByClubId(clubId, LocalDateTime.now());
+
+        // 已完成活动数
+        Integer completedCount = activityRepository.countCompletedByClubId(clubId);
+
+        return ClubStatsDto.builder()
+                .activityCount(activityCount != null ? activityCount : 0)
+                .totalParticipants(totalParticipants != null ? totalParticipants : 0)
+                .pendingCount(pendingCount != null ? pendingCount : 0)
+                .ongoingCount(ongoingCount != null ? ongoingCount : 0)
+                .completedCount(completedCount != null ? completedCount : 0)
+                .build();
+    }
+
+    /**
+     * 根据用户ID查询所属社团（用于社长查询自己管理的社团）
+     * 如果没有社团，返回null而不是抛出异常
+     */
+    @Transactional(readOnly = true)
+    public ClubDto getClubByUserId(Long userId) {
+        log.info("查询用户所属社团, userId: {}", userId);
+
+        if (userId == null) {
+            log.error("用户ID为空");
+            throw new RuntimeException("用户未登录");
+        }
+
+        // 通过 presidentId 查询社团（社团端只有社长使用）
+        List<Club> clubs = clubRepository.findByPresidentId(userId);
+        log.info("找到 {} 个社团", clubs.size());
+
+        if (clubs.isEmpty()) {
+            log.warn("用户 {} 没有所属社团", userId);
+            // 返回null，让前端显示空状态
+            return null;
+        }
+
+        Club club = clubs.get(0);
+        log.info("返回社团: id={}, name={}", club.getId(), club.getName());
+
+        // 返回第一个（通常一个社长只管理一个社团）
+        return clubMapper.toDto(club);
     }
 }

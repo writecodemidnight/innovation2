@@ -8,7 +8,7 @@
     <!-- 统计卡片 -->
     <el-row :gutter="20" class="stats-row">
       <el-col :xs="24" :sm="8">
-        <el-card class="stat-card" @click="activeTab = 'activity'" :class="{ active: activeTab === 'activity' }">
+        <el-card class="stat-card" @click="switchTab('activity')" :class="{ active: activeTab === 'activity' }">
           <div class="stat-icon" style="background: rgba(0, 212, 170, 0.1)">
             <el-icon size="32" color="#00d4aa"><Calendar /></el-icon>
           </div>
@@ -19,7 +19,7 @@
         </el-card>
       </el-col>
       <el-col :xs="24" :sm="8">
-        <el-card class="stat-card" @click="activeTab = 'fund'" :class="{ active: activeTab === 'fund' }">
+        <el-card class="stat-card" @click="switchTab('fund')" :class="{ active: activeTab === 'fund' }">
           <div class="stat-icon" style="background: rgba(163, 113, 247, 0.1)">
             <el-icon size="32" color="#a371f7"><Money /></el-icon>
           </div>
@@ -30,7 +30,7 @@
         </el-card>
       </el-col>
       <el-col :xs="24" :sm="8">
-        <el-card class="stat-card" @click="activeTab = 'resource'" :class="{ active: activeTab === 'resource' }">
+        <el-card class="stat-card" @click="switchTab('resource')" :class="{ active: activeTab === 'resource' }">
           <div class="stat-icon" style="background: rgba(88, 166, 255, 0.1)">
             <el-icon size="32" color="#58a6ff"><OfficeBuilding /></el-icon>
           </div>
@@ -346,6 +346,11 @@ async function loadTabData(tab: ApprovalType) {
       await approvalStore.fetchPendingResourceBookings();
       break;
   }
+}
+
+function switchTab(tab: ApprovalType) {
+  activeTab.value = tab;
+  loadTabData(tab);
 }
 
 function formatDateTime(date: string | undefined) {

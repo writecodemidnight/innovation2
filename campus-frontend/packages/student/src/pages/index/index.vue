@@ -36,11 +36,18 @@
     <!-- 推荐活动 -->
     <view class="recommend-section">
       <view class="section-header">
-        <text class="section-title">为你推荐</text>
+        <text class="section-title">{{ userStore.isLoggedIn ? '为你推荐' : '热门活动' }}</text>
         <text class="section-more" @click="goToMore">查看更多</text>
       </view>
 
-      <scroll-view scroll-y class="activity-list" @scrolltolower="onLoadMore">
+      <scroll-view
+        scroll-y
+        class="activity-list"
+        :refresher-enabled="true"
+        :refresher-triggered="refreshing"
+        @refresherrefresh="onRefresh"
+        @scrolltolower="onLoadMore"
+      >
         <ActivityCard
           v-for="activity in activities"
           :key="activity.id"
@@ -60,21 +67,49 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { ActivityType, ActivityTypeIcon, ActivityTypeMap, Endpoints } from '@campus/shared';
 import { apiClient } from '@campus/shared';
-import type { Activity } from '@campus/shared';
+import { useActivityStore } from '@/stores/activity';
+import { useUserStore } from '@/stores/user';
 import ActivityCard from '@/components/ActivityCard.vue';
+import type { Activity } from '@campus/shared';
+
+const activityStore = useActivityStore();
+const userStore = useUserStore();
 
 // 状态栏高度
 const statusBarHeight = ref(20);
 
-// 轮播图数据
-const banners = ref([
-  { image: 'https://picsum.photos/750/300?random=1', link: '' },
-  { image: 'https://picsum.photos/750/300?random=2', link: '' },
-  { image: 'https://picsum.photos/750/300?random=3', link: '' },
-]);
+// 轮播图数据（从热门活动中获取带封面的活动）
+const banners = ref<{ image: string; link: string; activityId?: number }[]>([]);
+
+// 加载轮播图（使用热门活动的前3个带封面的活动）
+async function loadBanners() {
+  try {
+    const data = await apiClient.get<Activity[]>(Endpoints.activities.hot);
+    const activitiesWithCover = (data || [])
+      .filter(a => a.coverImageUrl)
+      .slice(0, 3)
+      .map(a => ({
+        image: a.coverImageUrl!,
+        link: `/pages/activity/detail?id=${a.id}`,
+        activityId: a.id,
+      }));
+
+    // 如果没有带封面的活动，使用默认占位图
+    if (activitiesWithCover.length === 0) {
+      banners.value = [
+        { image: 'data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22750%22%20height%3D%22300%22%3E%3Crect%20fill%3D%22linear-gradient(135deg%2C%23667eea%200%25%2C%23764ba2%20100%25)%22%20width%3D%22750%22%20height%3D%22300%22%2F%3E%3Ctext%20x%3D%2250%25%22%20y%3D%2250%25%22%20dominant-baseline%3D%22middle%22%20text-anchor%3D%22middle%22%20fill%3D%22white%22%20font-size%3D%2236%22%3E%E6%A0%A1%E5%9B%AD%E7%A4%BE%E5%9B%A2%E6%B4%BB%E5%8A%A8%3C%2Ftext%3E%3C%2Fsvg%3E', link: '', activityId: undefined },
+      ];
+    } else {
+      banners.value = activitiesWithCover;
+    }
+  } catch (error) {
+    console.error('加载轮播图失败:', error);
+    banners.value = [{ image: 'data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22750%22%20height%3D%22300%22%3E%3Crect%20fill%3D%22%23e0e0e0%22%20width%3D%22750%22%20height%3D%22300%22%2F%3E%3Ctext%20x%3D%2250%25%22%20y%3D%2250%25%22%20dominant-baseline%3D%22middle%22%20text-anchor%3D%22middle%22%20fill%3D%22%23999%22%20font-size%3D%2236%22%3E%E6%A0%A1%E5%9B%AD%E7%A4%BE%E5%9B%A2%E6%B4%BB%E5%8A%A8%3C%2Ftext%3E%3C%2Fsvg%3E', link: '' }];
+  }
+}
 
 // 分类数据
 const categories = Object.values(ActivityType).map(type => ({
@@ -83,62 +118,70 @@ const categories = Object.values(ActivityType).map(type => ({
   icon: ActivityTypeIcon[type],
 }));
 
-// 活动列表
-const activities = ref<Activity[]>([]);
-const loading = ref(false);
-const finished = ref(false);
-const page = ref(1);
-const pageSize = 10;
+// 本地状态存储活动列表
+const localActivities = ref<Activity[]>([]);
+const localLoading = ref(false);
+const refreshing = ref(false);
 
-const loadMoreStatus = ref<'more' | 'loading' | 'noMore'>('more');
+// 从store获取活动列表（登录时使用推荐，未登录时使用热门）
+const activities = computed(() => {
+  if (userStore.isLoggedIn) {
+    return activityStore.recommendedActivities;
+  }
+  return localActivities.value;
+});
+const loading = computed(() => {
+  if (userStore.isLoggedIn) {
+    return activityStore.loading;
+  }
+  return localLoading.value;
+});
+const loadMoreStatus = computed(() => {
+  if (loading.value) return 'loading' as const;
+  return 'more' as const;
+});
 
 // 获取状态栏高度
 onMounted(() => {
   const systemInfo = uni.getSystemInfoSync();
   statusBarHeight.value = systemInfo.statusBarHeight || 20;
-  loadRecommendations();
+  // 延迟加载，避免页面初始化阻塞
+  setTimeout(() => {
+    loadBanners();
+    loadRecommendations();
+  }, 100);
 });
 
-// 加载推荐活动
+// 加载推荐活动（未登录时使用热门活动）
 async function loadRecommendations() {
-  if (loading.value || finished.value) return;
-
-  loading.value = true;
-  loadMoreStatus.value = 'loading';
-
-  try {
-    const data = await apiClient.get<Activity[]>(Endpoints.activities.recommend);
-    if (page.value === 1) {
-      activities.value = data || [];
-    } else {
-      activities.value.push(...(data || []));
+  if (userStore.isLoggedIn) {
+    await activityStore.fetchRecommendedActivities();
+  } else {
+    // 未登录时加载热门活动
+    localLoading.value = true;
+    try {
+      const data = await apiClient.get<Activity[]>(Endpoints.activities.hot);
+      localActivities.value = data || [];
+    } catch (error) {
+      console.error('获取热门活动失败:', error);
+      localActivities.value = [];
+    } finally {
+      localLoading.value = false;
     }
-
-    // 如果返回数据少于预期，标记为已结束
-    if (!data || data.length < pageSize) {
-      finished.value = true;
-      loadMoreStatus.value = 'noMore';
-    } else {
-      loadMoreStatus.value = 'more';
-    }
-  } catch (error: any) {
-    uni.showToast({ title: error.message || '获取推荐活动失败', icon: 'none' });
-    // 首次加载失败时显示空状态
-    if (page.value === 1) {
-      activities.value = [];
-    }
-    finished.value = true;
-    loadMoreStatus.value = 'noMore';
-  } finally {
-    loading.value = false;
   }
+}
+
+// 下拉刷新
+async function onRefresh() {
+  refreshing.value = true;
+  await loadRecommendations();
+  refreshing.value = false;
+  uni.stopPullDownRefresh();
 }
 
 // 加载更多
 function onLoadMore() {
-  if (finished.value || loading.value) return;
-  page.value++;
-  loadRecommendations();
+  // 推荐活动一次性加载，不需要分页
 }
 
 // 跳转到搜索
@@ -166,8 +209,10 @@ function goToMore() {
 }
 
 // 轮播图点击
-function onBannerClick(banner: any) {
-  if (banner.link) {
+function onBannerClick(banner: { image: string; link: string; activityId?: number }) {
+  if (banner.activityId) {
+    uni.navigateTo({ url: `/pages/activity/detail?id=${banner.activityId}` });
+  } else if (banner.link) {
     uni.navigateTo({ url: banner.link });
   }
 }

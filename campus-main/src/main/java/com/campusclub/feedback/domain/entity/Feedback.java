@@ -35,6 +35,12 @@ public class Feedback {
     @Column(nullable = false)
     private Integer rating;
 
+    @Column(name = "organization_rating")
+    private Integer organizationRating;
+
+    @Column(name = "content_rating")
+    private Integer contentRating;
+
     @Column(length = 2000)
     private String content;
 
@@ -50,4 +56,20 @@ public class Feedback {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    // ========== NLP情感分析结果 ==========
+
+    @Column(name = "sentiment_score")
+    private Double sentimentScore;
+
+    @Column(name = "sentiment_level", length = 20)
+    private String sentimentLevel;
+
+    @Column(name = "sentiment_confidence")
+    private Double sentimentConfidence;
+
+    @ElementCollection
+    @CollectionTable(name = "feedback_keywords", joinColumns = @JoinColumn(name = "feedback_id"))
+    @Column(name = "keyword")
+    private List<String> keywords;
 }

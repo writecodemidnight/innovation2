@@ -1,14 +1,15 @@
 package com.campusclub.common.security;
 
+import com.campusclub.club.domain.entity.Club;
 import com.campusclub.club.domain.entity.ClubMember;
 import com.campusclub.club.domain.repository.ClubMemberRepository;
-import com.campusclub.user.domain.entity.User;
+import com.campusclub.club.domain.repository.ClubRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
-import java.util.Optional;
+import java.util.List;
 
 /**
  * 用户上下文工具类
@@ -88,6 +89,7 @@ public class UserContext {
     }
 
     private static ClubMemberRepository clubMemberRepository;
+    private static ClubRepository clubRepository;
 
     /**
      * 注入 ClubMemberRepository
@@ -99,21 +101,40 @@ public class UserContext {
     }
 
     /**
+     * 注入 ClubRepository
+     * 使用 setter 注入避免循环依赖
+     */
+    @Autowired
+    public void setClubRepository(ClubRepository repository) {
+        UserContext.clubRepository = repository;
+    }
+
+    /**
      * 获取当前用户所属社团ID
+     * 优先从 club_members 表查询，如果没有则检查 clubs.president_id
      *
      * @return 社团ID，如果没有则返回 null
      */
     public static Long getCurrentClubId() {
         Long userId = getCurrentUserId();
 
-        if (clubMemberRepository == null) {
-            throw new IllegalStateException("ClubMemberRepository 未初始化");
+        // 首先尝试从 club_members 表获取
+        if (clubMemberRepository != null) {
+            List<ClubMember> members = clubMemberRepository.findByUserId(userId);
+            if (!members.isEmpty()) {
+                return members.get(0).getClubId();
+            }
         }
 
-        return clubMemberRepository.findByUserId(userId).stream()
-                .findFirst()
-                .map(ClubMember::getClubId)
-                .orElse(null);
+        // 如果没有找到，检查是否是社长（clubs.president_id）
+        if (clubRepository != null) {
+            List<com.campusclub.club.domain.entity.Club> clubs = clubRepository.findByPresidentId(userId);
+            if (!clubs.isEmpty()) {
+                return clubs.get(0).getId();
+            }
+        }
+
+        return null;
     }
 
     /**

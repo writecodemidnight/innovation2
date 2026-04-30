@@ -8,10 +8,15 @@ export const useActivityStore = defineStore('activity', () => {
   const activities = ref<Activity[]>([]);
   const recommendedActivities = ref<Activity[]>([]);
   const hotActivities = ref<Activity[]>([]);
+  const upcomingActivities = ref<Activity[]>([]);
   const currentActivity = ref<ActivityDetail | null>(null);
   const myActivities = ref<Activity[]>([]);
   const loading = ref(false);
   const error = ref<string | null>(null);
+  const totalElements = ref(0);
+  const currentPage = ref(0);
+  const pageSize = ref(10);
+  const hasMore = ref(true);
 
   // Getters
   const isLoading = computed(() => loading.value);
@@ -26,13 +31,12 @@ export const useActivityStore = defineStore('activity', () => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await activityApi.getRecommended();
-      recommendedActivities.value = response.data || [];
+      const data = await activityApi.getRecommended();
+      recommendedActivities.value = data || [];
     } catch (e: any) {
       console.error('获取推荐活动失败:', e);
       error.value = e.message || '获取推荐活动失败';
-      // 使用模拟数据作为降级
-      recommendedActivities.value = getMockActivities();
+      recommendedActivities.value = [];
     } finally {
       loading.value = false;
     }
@@ -45,12 +49,30 @@ export const useActivityStore = defineStore('activity', () => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await activityApi.getHot();
-      hotActivities.value = response.data || [];
+      const data = await activityApi.getHot();
+      hotActivities.value = data || [];
     } catch (e: any) {
       console.error('获取热门活动失败:', e);
       error.value = e.message || '获取热门活动失败';
-      hotActivities.value = getMockActivities();
+      hotActivities.value = [];
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  /**
+   * 获取即将开始的活动
+   */
+  async function fetchUpcomingActivities() {
+    loading.value = true;
+    error.value = null;
+    try {
+      const data = await activityApi.getUpcoming();
+      upcomingActivities.value = data || [];
+    } catch (e: any) {
+      console.error('获取即将开始活动失败:', e);
+      error.value = e.message || '获取即将开始活动失败';
+      upcomingActivities.value = [];
     } finally {
       loading.value = false;
     }
@@ -64,16 +86,42 @@ export const useActivityStore = defineStore('activity', () => {
     size?: number;
     type?: string;
     status?: string;
+    keyword?: string;
+    reset?: boolean;
   }) {
+    if (params?.reset) {
+      activities.value = [];
+      currentPage.value = 0;
+      hasMore.value = true;
+    }
+
+    if (loading.value || !hasMore.value) return;
+
     loading.value = true;
     error.value = null;
     try {
-      const response = await activityApi.getList(params);
-      activities.value = response.data?.content || [];
+      const response = await activityApi.getList({
+        page: currentPage.value,
+        size: pageSize.value,
+        ...params
+      });
+
+      if (response && response.content) {
+        if (params?.reset) {
+          activities.value = response.content;
+        } else {
+          activities.value.push(...response.content);
+        }
+        totalElements.value = response.totalElements || 0;
+        currentPage.value++;
+        hasMore.value = activities.value.length < totalElements.value;
+      } else {
+        hasMore.value = false;
+      }
     } catch (e: any) {
       console.error('获取活动列表失败:', e);
       error.value = e.message || '获取活动列表失败';
-      activities.value = getMockActivities();
+      hasMore.value = false;
     } finally {
       loading.value = false;
     }
@@ -86,12 +134,30 @@ export const useActivityStore = defineStore('activity', () => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await activityApi.getDetail(id);
-      currentActivity.value = response.data;
+      const data = await activityApi.getDetail(id);
+      currentActivity.value = data;
     } catch (e: any) {
       console.error('获取活动详情失败:', e);
       error.value = e.message || '获取活动详情失败';
       currentActivity.value = null;
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  /**
+   * 获取我的活动
+   */
+  async function fetchMyActivities() {
+    loading.value = true;
+    error.value = null;
+    try {
+      const data = await activityApi.getMyActivities();
+      myActivities.value = data || [];
+    } catch (e: any) {
+      console.error('获取我的活动失败:', e);
+      error.value = e.message || '获取我的活动失败';
+      myActivities.value = [];
     } finally {
       loading.value = false;
     }
@@ -142,16 +208,44 @@ export const useActivityStore = defineStore('activity', () => {
   }
 
   /**
-   * 提交评价
+   * 活动签到
+   */
+  async function checkInActivity(id: number) {
+    loading.value = true;
+    try {
+      await activityApi.checkIn(id);
+      return true;
+    } catch (e: any) {
+      console.error('签到失败:', e);
+      error.value = e.message || '签到失败';
+      return false;
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  /**
+   * 提交评价（星级打分+文字评价，后端自动进行NLP情感分析）
    */
   async function submitEvaluation(id: number, data: {
     rating: number;
+    organizationRating?: number;
+    contentRating?: number;
     content: string;
     photos?: string[];
   }) {
     loading.value = true;
     try {
-      await activityApi.submitEvaluation(id, data);
+      // 导入feedbackApi提交评价
+      const { feedbackApi } = await import('@/api/feedback');
+      await feedbackApi.submit({
+        activityId: id,
+        rating: data.rating,
+        organizationRating: data.organizationRating,
+        contentRating: data.contentRating,
+        content: data.content,
+        images: data.photos,
+      });
       return true;
     } catch (e: any) {
       console.error('提交评价失败:', e);
@@ -176,78 +270,42 @@ export const useActivityStore = defineStore('activity', () => {
     error.value = null;
   }
 
+  /**
+   * 重置分页状态
+   */
+  function resetPagination() {
+    activities.value = [];
+    currentPage.value = 0;
+    hasMore.value = true;
+    totalElements.value = 0;
+  }
+
   return {
     activities,
     recommendedActivities,
     hotActivities,
+    upcomingActivities,
     currentActivity,
     myActivities,
     loading,
     error,
+    totalElements,
+    hasMore,
     isLoading,
     hasError,
     fetchRecommendedActivities,
     fetchHotActivities,
+    fetchUpcomingActivities,
     fetchActivities,
     fetchActivityDetail,
+    fetchMyActivities,
     joinActivity,
     leaveActivity,
+    checkInActivity,
     submitEvaluation,
     clearCurrentActivity,
     clearError,
+    resetPagination,
   };
 });
 
-// 模拟数据（用于API不可用时降级）
-function getMockActivities(): Activity[] {
-  return [
-    {
-      id: 1,
-      title: '人工智能前沿技术讲座',
-      description: '邀请业内专家分享AI最新技术趋势',
-      type: '学术讲座',
-      location: '大礼堂',
-      startTime: '2024-04-20T14:00:00',
-      endTime: '2024-04-20T16:00:00',
-      maxParticipants: 200,
-      currentParticipants: 150,
-      status: 'APPROVED',
-      clubId: 1,
-      clubName: '科技创新社',
-      posterUrl: '/static/images/activity1.jpg',
-      isRegistered: false,
-    },
-    {
-      id: 2,
-      title: '春季摄影大赛',
-      description: '记录校园春天的美好瞬间',
-      type: '文艺比赛',
-      location: '校园各角落',
-      startTime: '2024-04-15T08:00:00',
-      endTime: '2024-04-30T18:00:00',
-      maxParticipants: 500,
-      currentParticipants: 320,
-      status: 'ONGOING',
-      clubId: 2,
-      clubName: '摄影协会',
-      posterUrl: '/static/images/activity2.jpg',
-      isRegistered: true,
-    },
-    {
-      id: 3,
-      title: '篮球友谊赛',
-      description: '各院系篮球友谊交流赛',
-      type: '体育竞技',
-      location: '体育馆',
-      startTime: '2024-04-25T16:00:00',
-      endTime: '2024-04-25T18:00:00',
-      maxParticipants: 100,
-      currentParticipants: 80,
-      status: 'APPROVED',
-      clubId: 3,
-      clubName: '篮球协会',
-      posterUrl: '/static/images/activity3.jpg',
-      isRegistered: false,
-    },
-  ];
-}

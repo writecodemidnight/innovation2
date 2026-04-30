@@ -10,6 +10,19 @@ export default defineConfig({
       '@campus/shared': path.resolve(__dirname, '../shared/src'),
     },
   },
+  server: {
+    port: 3000,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8082',
+        changeOrigin: true,
+      },
+      '/uploads': {
+        target: 'http://localhost:8082',
+        changeOrigin: true,
+      },
+    },
+  },
   build: {
     target: 'es6',
     minify: 'terser',

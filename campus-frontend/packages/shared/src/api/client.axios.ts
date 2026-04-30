@@ -9,12 +9,10 @@ import type { ApiResponse } from './types';
 // 内存中缓存token，避免每次请求都读取localStorage
 let cachedToken: string | null = null;
 
-// 从localStorage读取token（兼容多个key：admin_token, access_token）
+// 从localStorage读取token（只读取access_token，避免多端token混淆）
 const getToken = (): string | null => {
   if (cachedToken === null) {
-    cachedToken = localStorage.getItem('access_token')
-      || localStorage.getItem('admin_token')
-      || localStorage.getItem('club_token');
+    cachedToken = localStorage.getItem('access_token');
   }
   return cachedToken;
 };

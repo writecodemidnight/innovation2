@@ -1,4 +1,5 @@
-import { apiClient, Endpoints } from '@campus/shared';
+import { apiClient } from '@campus/shared/api/client.axios';
+import { Endpoints } from '@campus/shared';
 import type {
   Feedback,
   FeedbackStats,

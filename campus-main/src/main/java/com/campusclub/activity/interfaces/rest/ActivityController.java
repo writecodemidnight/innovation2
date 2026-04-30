@@ -5,22 +5,28 @@ import com.campusclub.activity.application.dto.ActivityDto;
 import com.campusclub.activity.application.dto.ActivityParticipantDto;
 import com.campusclub.activity.application.service.ActivityApplicationService;
 import com.campusclub.activity.domain.entity.Activity;
+import com.campusclub.common.security.UserContext;
 import com.campusclub.dto.ApiResponse;
+import com.campusclub.recommendation.service.RecommendationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequestMapping("/v1/activities")
 @RequiredArgsConstructor
@@ -28,6 +34,7 @@ import java.util.List;
 public class ActivityController {
 
     private final ActivityApplicationService activityService;
+    private final RecommendationService recommendationService;
 
     // GET /api/v1/activities - 活动列表（支持筛选）- 公开
     @GetMapping
@@ -37,7 +44,18 @@ public class ActivityController {
             @RequestParam(required = false) Activity.ActivityType type,
             @RequestParam(required = false) Long clubId,
             Pageable pageable) {
-        Page<ActivityDto> activities = activityService.listActivities(status, type, clubId, pageable);
+        // 如果没有传 clubId，且用户已登录，则使用当前用户的 clubId
+        Long effectiveClubId = clubId;
+        if (effectiveClubId == null) {
+            try {
+                effectiveClubId = UserContext.getCurrentClubId();
+                log.debug("自动获取当前用户 clubId: {}", effectiveClubId);
+            } catch (Exception e) {
+                // 用户未登录或没有社团，不传 clubId，返回所有公开活动
+                log.debug("无法获取当前用户 clubId，返回所有活动");
+            }
+        }
+        Page<ActivityDto> activities = activityService.listActivities(status, type, effectiveClubId, pageable);
         return ResponseEntity.ok(ApiResponse.success(activities));
     }
 
@@ -144,6 +162,32 @@ public class ActivityController {
     public ResponseEntity<ApiResponse<List<ActivityDto>>> listMyActivities(
             @AuthenticationPrincipal Long userId) {
         List<ActivityDto> activities = activityService.listMyActivities(userId);
+        return ResponseEntity.ok(ApiResponse.success(activities));
+    }
+
+    // GET /api/v1/activities/recommend - 推荐活动 - 已登录（用于个性化推荐）
+    @GetMapping("/recommend")
+    @SecurityRequirement(name = "bearerAuth")
+    @Operation(summary = "个性推荐", description = "基于K-Means聚类算法的个性化活动推荐")
+    public ResponseEntity<ApiResponse<List<ActivityDto>>> getRecommendedActivities(
+            @AuthenticationPrincipal Long userId) {
+        List<ActivityDto> activities = recommendationService.getPersonalizedRecommendations(userId);
+        return ResponseEntity.ok(ApiResponse.success(activities));
+    }
+
+    // GET /api/v1/activities/hot - 热门活动 - 公开
+    @GetMapping("/hot")
+    @Operation(summary = "热门活动", description = "获取热门活动列表")
+    public ResponseEntity<ApiResponse<List<ActivityDto>>> getHotActivities() {
+        List<ActivityDto> activities = activityService.getHotActivities();
+        return ResponseEntity.ok(ApiResponse.success(activities));
+    }
+
+    // GET /api/v1/activities/upcoming - 即将开始的活动 - 公开
+    @GetMapping("/upcoming")
+    @Operation(summary = "即将开始的活动", description = "获取未来7天内即将开始的活动")
+    public ResponseEntity<ApiResponse<List<ActivityDto>>> getUpcomingActivities() {
+        List<ActivityDto> activities = activityService.getUpcomingActivities();
         return ResponseEntity.ok(ApiResponse.success(activities));
     }
 }

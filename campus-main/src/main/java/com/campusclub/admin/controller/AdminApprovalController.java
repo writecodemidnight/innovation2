@@ -66,7 +66,7 @@ public class AdminApprovalController {
         Activity activity = activityRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("活动不存在"));
 
-        activity.setStatus(Activity.ActivityStatus.APPROVED);
+        activity.setStatus(Activity.ActivityStatus.REGISTERING);
         activity.setUpdatedAt(LocalDateTime.now());
         activityRepository.save(activity);
 

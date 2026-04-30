@@ -1,0 +1,56 @@
+{
+  "2e7f416afa06": {
+    "model_id": "2e7f416afa06",
+    "activity_type": "WORKSHOP",
+    "venue_type": "111111111111111111111",
+    "created_at": "2026-04-23T13:45:22.275935",
+    "last_used": "2026-04-23T13:45:44.072508",
+    "use_count": 2,
+    "mape_score": 0.0
+  },
+  "2a54fc8895be": {
+    "model_id": "2a54fc8895be",
+    "activity_type": "SOCIAL",
+    "venue_type": "1111111111111111111",
+    "created_at": "2026-04-23T13:45:27.206421",
+    "last_used": "2026-04-23T13:45:40.225207",
+    "use_count": 2,
+    "mape_score": 0.0
+  },
+  "9712e1da695b": {
+    "model_id": "9712e1da695b",
+    "activity_type": "WORKSHOP",
+    "venue_type": "222222222222222222222222222",
+    "created_at": "2026-04-23T13:46:20.322274",
+    "last_used": "2026-04-23T13:46:20.322279",
+    "use_count": 1,
+    "mape_score": 0.0
+  },
+  "f6d3f785edea": {
+    "model_id": "f6d3f785edea",
+    "activity_type": "LECTURE",
+    "venue_type": "123456",
+    "created_at": "2026-04-23T16:31:48.177624",
+    "last_used": "2026-04-23T16:31:48.177633",
+    "use_count": 1,
+    "mape_score": 0.0
+  },
+  "23ea407b4e5b": {
+    "model_id": "23ea407b4e5b",
+    "activity_type": "SOCIAL",
+    "venue_type": "666666666666",
+    "created_at": "2026-04-23T16:37:45.832673",
+    "last_used": "2026-04-23T16:37:45.832679",
+    "use_count": 1,
+    "mape_score": 0.0
+  },
+  "61f0a2d62fff": {
+    "model_id": "61f0a2d62fff",
+    "activity_type": "LECTURE",
+    "venue_type": "222222222222222222222222",
+    "created_at": "2026-04-23T18:49:58.625313",
+    "last_used": "2026-04-23T18:49:58.625329",
+    "use_count": 1,
+    "mape_score": 0.0
+  }
+}

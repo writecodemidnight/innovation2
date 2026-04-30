@@ -14,5 +14,6 @@ public record UserDto(
     String email,
     User.UserRole role,
     User.UserStatus status,
-    LocalDateTime createdAt
+    LocalDateTime createdAt,
+    Long clubId
 ) {}
