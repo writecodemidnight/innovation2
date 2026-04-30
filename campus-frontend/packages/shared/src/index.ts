@@ -5,12 +5,16 @@
  * - API类型定义
  * - API端点常量
  * - API客户端
+ * - TanStack Query 配置
  * - 业务常量
  * - 工具函数
  */
 
 // API相关
 export * from './api';
+
+// TanStack Query
+export * from './query';
 
 // 常量
 export * from './constants';

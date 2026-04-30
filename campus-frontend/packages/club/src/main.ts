@@ -1,8 +1,11 @@
 import { createApp } from 'vue';
 import { createPinia } from 'pinia';
+import { VueQueryPlugin } from '@tanstack/vue-query';
+import { queryClient } from '@campus/shared';
 import ElementPlus from 'element-plus';
 import * as ElementPlusIconsVue from '@element-plus/icons-vue';
 import 'element-plus/dist/index.css';
+import 'virtual:uno.css';
 import zhCn from 'element-plus/dist/locale/zh-cn.mjs';
 
 import App from './App.vue';
@@ -17,6 +20,7 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
 
 app.use(createPinia());
 app.use(router);
+app.use(VueQueryPlugin, { queryClient });
 app.use(ElementPlus, { locale: zhCn });
 
 app.mount('#app');

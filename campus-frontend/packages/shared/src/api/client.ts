@@ -97,6 +97,11 @@ function request<T>(
       header['Authorization'] = `Bearer ${token}`;
     }
 
+    if (typeof uni === 'undefined') {
+      reject(new ApiError('uni is not available. Please use client.axios.ts for browser environments.'));
+      return;
+    }
+
     uni.request({
       url: fullURL,
       method,

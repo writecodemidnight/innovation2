@@ -135,8 +135,9 @@
 import { ref, onMounted } from 'vue';
 import { Search } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { apiClient, formatDateTime, ActivityStatusMap, ActivityTypeMap } from '@campus/shared';
+import { formatDateTime, ActivityStatusMap, ActivityTypeMap } from '@campus/shared';
 import type { Activity, PageResponse } from '@campus/shared';
+import { apiClient } from '@campus/shared/api/client.axios';
 import { useRouter } from 'vue-router';
 
 const router = useRouter();

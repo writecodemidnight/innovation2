@@ -82,8 +82,9 @@
 import { ref, onMounted } from 'vue';
 import { Search } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
-import { apiClient, Endpoints } from '@campus/shared';
+import { Endpoints } from '@campus/shared';
 import type { PageResponse } from '@campus/shared';
+import { apiClient } from '@campus/shared/api/client.axios';
 
 const historyType = ref('activities');
 const filterStatus = ref('');
